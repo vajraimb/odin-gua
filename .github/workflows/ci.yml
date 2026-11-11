@@ -21,9 +21,6 @@ jobs:
           curl -sSL -o odin.tgz https://github.com/odin-lang/Odin/releases/download/dev-2026-07/${{ matrix.asset }}
           mkdir -p "$RUNNER_TEMP/odin" && tar xzf odin.tgz -C "$RUNNER_TEMP/odin" --strip-components=1
           echo "$RUNNER_TEMP/odin" >> "$GITHUB_PATH"
-      - name: Install clang (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y clang
-      - run: odin version
+      - run: odin version && clang --version | head -1
       - name: Build and test
         run: ./build.sh test
