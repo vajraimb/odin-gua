@@ -4,6 +4,43 @@
 
 > 仅供娱乐与自我反思，不构成任何决策（含投资）依据。
 
+## 安装
+
+需要 [Odin dev-2026-07](https://github.com/odin-lang/Odin/releases/tag/dev-2026-07)（Linux 另需 clang）。
+
+```bash
+./build.sh          # 生成 bin/odin-gua（约 450 KB，无依赖）
+./build.sh test     # 再跑单元测试与新旧两代协议的 stdio 冒烟测试
+```
+
+接入客户端（路径用绝对路径）：
+
+| 客户端 | 方式 |
+|---|---|
+| Claude Code | `claude mcp add odin-gua -- /abs/path/bin/odin-gua` |
+| Codex CLI | `codex mcp add odin-gua -- /abs/path/bin/odin-gua` |
+| Claude Desktop / Cursor 等 | 在 MCP 配置里加 `"odin-gua": {"command": "/abs/path/bin/odin-gua"}` |
+
+之后在对话里直接说“帮我起一卦，问下周的谈判”即可。
+
+环境变量（都可不设）：
+
+| 变量 | 作用 |
+|---|---|
+| `GUA_HOME` | 日志目录，默认 `~/.gua` |
+| `GUA_TZ` | 时间戳时区（IANA 名，如 `Asia/Shanghai`），默认系统时区 |
+
+日志 `~/.gua/journal.jsonl` 只追加、权限 0600，所有客户端共用。
+
+## 协议
+
+同时支持两代 MCP：
+
+- 旧版 2024-11-05 … 2025-11-25：`initialize` 握手。
+- 新版 2026-07-28：无握手，`server/discover`，结果带 `resultType`，list/read 带 `ttlMs`、`cacheScope`。
+
+请求 `_meta` 里带 `io.modelcontextprotocol/protocolVersion` 就按新版回复，否则按旧版。已用 MCP Inspector 2.14.0 CLI 验证。
+
 ## 设计原则
 
 - **排卦归程序，解卦归模型。** 随机数、互错综变、取哪条爻辞都由代码确定并可复现；模型只负责联系问题去解释。
@@ -24,18 +61,19 @@
 - 八卦：U+2630–U+2637；单爻：⚊ U+268A、⚋ U+268B。
 - 卦辞爻辞：待逐条核对公开文本；英文译文计划用 Legge (1882，公有领域)。
 
-## 工具（草案）
+## 工具
 
-| 工具 | 作用 |
-|---|---|
-| `cast` | 起卦（三钱法/大衍法），必须带 `question`；返回卦象、应读原文、到期复盘清单 |
-| `lookup` | 按序号、中文名、英文名、Unicode 符号、六位二进制查卦 |
-| `relations` | 互、错、综、变 |
-| `annotate` | 写回模型解读：倾向、置信度、复盘日期 |
-| `review` | 记录事后结果 |
-| `report` | 命中率、Brier 校准、安慰剂对照、评委点评 |
+| 工具 | 状态 | 作用 |
+|---|---|---|
+| `cast` | ✅ 0.1 | 起卦（三钱法/大衍法概率），必须带 `question`；返回本卦、动爻、之卦、互卦、取辞位置，自动记日志 |
+| `lookup` | ✅ 0.1 | 按序号、中文名、拼音、英文名、Unicode 卦符、六位二进制查卦 |
+| `relations` | ✅ 0.1 | 互、错、综；给动爻时再给之卦与取辞 |
+| `journal` | ✅ 0.1 | 最近的起卦记录 |
+| `annotate` | 计划 | 写回模型解读：倾向、置信度、复盘日期 |
+| `review` | 计划 | 记录事后结果 |
+| `report` | 计划 | 命中率、Brier 校准、安慰剂对照、评委点评 |
 
-资源：`hexagram://1` … `hexagram://64`。
+资源：`hexagram://1` … `hexagram://64`（模板 `hexagram://{number}`）。
 
 ## 规则
 
@@ -45,13 +83,19 @@
 
 ## 路线
 
-1. `cast` / `lookup` / `relations` + 自动日志 + Unicode/英文名
+1. ✅ `cast` / `lookup` / `relations` / `journal` + 自动日志 + Unicode/英文名 + 取辞位置
 2. 卦辞爻辞原文入库（逐条核对）+ `reading` 规则
 3. `annotate`、复盘提醒、防重摇
 4. `review` / `report`、安慰剂对照、评委打分
 
 ## 目录
 
+- `src/gua` — 卦的表示、文王表、起卦、取辞规则（含单元测试）
+- `src/mcp` — stdio JSON-RPC 协议层（新旧两代）
+- `src/journal` — 卦例日志
+- `src/main.odin` — 工具与资源
+- `tests/smoke.py` — 协议冒烟测试
+- `tools/gen_names_en.py` — 从 Unicode 字符名生成英文卦名表
 - `proto/qigua` — 起卦与互错综变原型（含文王表自检）
 - `proto/gua_types` — “卦即类型”编译期实验
 - `docs/mcp-survey.md` — Odin MCP 现状调研

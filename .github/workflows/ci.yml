@@ -1,0 +1,29 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: odin-linux-amd64-dev-2026-07.tar.gz
+          - os: macos-15
+            asset: odin-macos-arm64-dev-2026-07.tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Odin dev-2026-07
+        run: |
+          curl -sSL -o odin.tgz https://github.com/odin-lang/Odin/releases/download/dev-2026-07/${{ matrix.asset }}
+          mkdir -p "$RUNNER_TEMP/odin" && tar xzf odin.tgz -C "$RUNNER_TEMP/odin" --strip-components=1
+          echo "$RUNNER_TEMP/odin" >> "$GITHUB_PATH"
+      - name: Install clang (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang
+      - run: odin version
+      - name: Build and test
+        run: ./build.sh test
