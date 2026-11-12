@@ -80,7 +80,9 @@ odin build src -out:%USERPROFILE%\.gua\bin\odin-gua.exe -o:speed
 ## 使用规则（给调用工具的 agent）
 
 - 用户想起卦、占卜、问卦时调用 `cast`，把用户关心的事提炼成一句 `question`；不要让用户自己抛硬币。
-- 卦象只能来自 `cast` 的返回。绝不自行编造，也不为同一问题反复起卦挑结果（初筮告，再三渎）。
+- 卦象只能来自 `cast` 的返回。绝不自行编造。同一问题服务器 72 小时内不重摇、会返回原卦；不要改写问题绕开。只有用户明确说情况变了，才带 `recast:true` 与 `reason`。
+- 解读完立刻调用 `annotate`：`stance`、`confidence`（0–1）、`prediction`（将来能对照检验的一句话）、`review_after`/`review_in_days`（按问题的时间尺度）。每卦只能记一次。
+- `cast`/`journal` 结果里出现“复盘提醒”时，在回答末尾顺便问用户那几件事的结果。
 - 解读以返回的 `reading`（朱熹取辞规则：读哪条卦辞或爻辞）为主线，结合本卦、之卦、互卦与问题；先给倾向，再给理由。
 - `reading.focus[].text_zh` / `text_en` 是原文（通行本 / Legge 1882），引用时照录，不要凭记忆改写经文。
 - 提醒用户：仅供自我反思，不构成任何决策（包括投资）依据。

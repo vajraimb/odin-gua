@@ -8,5 +8,6 @@ odin build src -out:bin/odin-gua -o:speed -vet -strict-style
 echo "built bin/odin-gua ($(wc -c < bin/odin-gua) bytes)"
 if [[ "${1:-}" == "test" ]]; then
 	odin test src/gua -vet -strict-style
+	odin test src/journal -vet -strict-style
 	python3 tests/smoke.py bin/odin-gua
 fi

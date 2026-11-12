@@ -15,7 +15,7 @@ import "gua"
 import "journal"
 import "mcp"
 
-VERSION :: "0.2.0"
+VERSION :: "0.3.0"
 
 obj :: mcp.obj
 q :: mcp.q
@@ -25,10 +25,12 @@ boolean :: mcp.boolean
 
 INSTRUCTIONS :: `易经起卦服务（I Ching casting）。
 - 用户想起卦、占卜、问卦时（如“起一卦”“帮我卜一下”“cast the I Ching”），调用 cast，并把用户关心的事提炼成一句 question 传入；不必让用户自己抛硬币。
-- 卦象由服务器随机数决定并自动记入日志。绝不要自行编造卦象，也不要为同一问题反复起卦挑结果（初筮告，再三渎）。
+- 卦象由服务器随机数决定并自动记入日志。绝不要自行编造卦象。同一问题 72 小时内服务器不会重摇，会返回原卦（初筮告，再三渎）；不要换个说法绕开。只有情况确已改变、用户明确要求时，才传 recast:true 和 reason，新卦记为“渎”、不计入统计。
 - 解读以返回的 reading（朱熹取辞规则：该读哪条卦辞或爻辞）为主线；reading.focus 里已附原文 text_zh（通行本）与 text_en（Legge 1882 英译），请据原文引述，不要凭记忆改写经文。结合本卦、之卦、互卦与问题来讲；先给结论倾向，再给理由。
+- 讲完解读后立刻调用 annotate 记下：stance（倾向）、confidence（0–1）、prediction（一句将来能对照检验的具体判断）、review_after 或 review_in_days（何时复盘，按问题时间尺度定）。每卦只记一次，写下不改。
+- cast 与 journal 的结果里若有“复盘提醒”，在回答末尾顺便问用户那几件事结果如何。
 - 提醒用户：这是供自我反思的参考，不构成任何决策（包括投资）依据。
-- 查卦用 lookup，看互错综变用 relations，回看历史用 journal。`
+- 查卦用 lookup，看互错综变用 relations，回看历史用 journal（due:true 只看到期待复盘的）。`
 
 main :: proc() {
 	if ok, msg := gua.self_check(); !ok {
@@ -40,7 +42,7 @@ main :: proc() {
 		mcp.Tool{
 			name = "cast", title = "起卦",
 			description = "起一卦（默认三钱法），返回本卦、动爻、之卦、互卦与按朱熹规则应读的卦辞/爻辞位置，并自动记入卦例日志。必须提供 question。Cast an I Ching hexagram for a question; the result is random, reproducible by seed, and journaled.",
-			input_schema = `{"type":"object","properties":{"question":{"type":"string","description":"用户所问之事，一句话"},"method":{"type":"string","enum":["coins","yarrow"],"default":"coins","description":"coins 三钱法；yarrow 大衍筮法概率"}},"required":["question"]}`,
+			input_schema = `{"type":"object","properties":{"question":{"type":"string","description":"用户所问之事，一句话"},"method":{"type":"string","enum":["coins","yarrow"],"default":"coins","description":"coins 三钱法；yarrow 大衍筮法概率"},"recast":{"type":"boolean","default":false,"description":"同一问题窗口期内确需重起时才设 true（新卦记为渎）"},"reason":{"type":"string","description":"recast 时必填：情况有何变化"}},"required":["question"]}`,
 			handler = tool_cast,
 		},
 		mcp.Tool{
@@ -58,8 +60,14 @@ main :: proc() {
 		mcp.Tool{
 			name = "journal", title = "卦例日志", read_only = true,
 			description = "列出最近的起卦记录（新的在前）。Recent casts from the local journal.",
-			input_schema = `{"type":"object","properties":{"limit":{"type":"integer","minimum":1,"maximum":50,"default":10}}}`,
+			input_schema = `{"type":"object","properties":{"limit":{"type":"integer","minimum":1,"maximum":50,"default":10},"due":{"type":"boolean","default":false,"description":"只看已到复盘日、尚未复盘的卦例"}}}`,
 			handler = tool_journal,
+		},
+		mcp.Tool{
+			name = "annotate", title = "记下解读",
+			description = "解卦后记下模型的解读与可检验的预测，供日后复盘。每卦只记一次，写下不改。Record the model's reading and a checkable prediction for later review; one per cast, immutable.",
+			input_schema = `{"type":"object","properties":{"id":{"type":"string","description":"cast 返回的卦例 id"},"stance":{"type":"string","enum":["favorable","unfavorable","mixed","unclear"],"description":"倾向：偏吉/偏凶/参半/不明"},"confidence":{"type":"number","minimum":0,"maximum":1,"description":"对此倾向的把握"},"prediction":{"type":"string","description":"一句将来能对照结果检验的具体判断"},"summary":{"type":"string","description":"解读要点（可选）"},"review_after":{"type":"string","description":"复盘日期 YYYY-MM-DD"},"review_in_days":{"type":"integer","minimum":1,"description":"或：几天后复盘（默认 14）"}},"required":["id","stance","confidence","prediction"]}`,
+			handler = tool_annotate,
 		},
 	)
 	s.list_resources = list_resources
@@ -237,6 +245,19 @@ tool_cast :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 	case:             return fail("method 只能是 coins 或 yarrow")
 	}
 
+	cases, _ := journal.load_cases()
+	recast, _ := c.args["recast"].(json.Boolean)
+	reason := strings.trim_space(str_arg(c, "reason"))
+	prev, dup := find_recent_same(cases[:], question)
+	if dup && !recast {
+		pid := journal.str(prev.entry, "id")
+		text := fmt.tprintf("此问已于 %s 起过卦：%s %s\n原问：%s\n\n初筮告，再三渎：不重摇，请沿用原卦解读（journal 可查看）。若情况确已改变，可带 recast:true 与 reason 重起，新卦记为“渎”、不计入统计。",
+			journal.str(prev.entry, "ts"), pid, case_title(prev.entry), journal.str(prev.entry, "question"))
+		return {text = text, structured = obj({"duplicate_of", q(pid)}, {"journaled", "false"}, {"cast", "false"})}
+	}
+	if dup && reason == "" { return fail("recast 需要 reason：说明情况有何变化") }
+	du := dup && recast
+
 	seed := journal.random_u64()
 	if s := os.get_env("GUA_SEED", context.temp_allocator); s != "" { // 仅测试用
 		if v, ok := strconv.parse_u64(s); ok { seed = v }
@@ -262,6 +283,9 @@ tool_cast :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 		{"client", q(c.client) if c.client != "" else ""},
 		{"server", q(VERSION)},
 		{"texts", q(gua.texts_id())},
+		{"du", "true" if du else ""},
+		{"duplicate_of", q(journal.str(prev.entry, "id")) if du else ""},
+		{"reason", q(reason) if du else ""},
 	)
 	saved := journal.append_line(entry)
 
@@ -278,7 +302,11 @@ tool_cast :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 	fmt.sbprintf(&b, "互卦 %s\n\n", gua.title(gua.hu(g)))
 	fmt.sbprintf(&b, "取辞（朱熹）：%s\n", r.rule)
 	write_focus(&b, r, g, m)
+	if du { fmt.sbprintf(&b, "\n此卦为重摇（原卦 %s），记为“渎”，不计入统计。", journal.str(prev.entry, "id")) }
 	fmt.sbprintf(&b, "\n仅供自我反思，不构成决策依据。")
+	fmt.sbprintf(&b, "\n解读后请调用 annotate(id=%s) 记下倾向、把握与可检验的预测。", id)
+	due := journal.due(cases[:], journal.today())
+	write_due(&b, due)
 	if !saved { fmt.sbprintf(&b, "\n（注意：日志写入失败：%s）", journal.path()) }
 
 	structured := obj(
@@ -294,6 +322,8 @@ tool_cast :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 		{"nuclear", hex_json(gua.hu(g))},
 		{"reading", reading_json(g, m)},
 		{"journaled", boolean(saved)},
+		{"du", "true" if du else ""},
+		{"due_reviews", due_json(due) if len(due) > 0 else ""},
 	)
 	return {text = strings.to_string(b), structured = structured}
 }
@@ -346,30 +376,40 @@ tool_relations :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 tool_journal :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 	limit := 10
 	if v, ok := c.args["limit"].(json.Integer); ok { limit = clamp(int(v), 1, 50) }
-	rows := journal.recent_casts(limit)
+	only_due, _ := c.args["due"].(json.Boolean)
+	cases, _ := journal.load_cases()
+	today := journal.today()
+	due := journal.due(cases[:], today)
+	rows := make([dynamic]journal.Case, context.temp_allocator)
+	if only_due {
+		for d in due { if len(rows) < limit { append(&rows, d) } }
+	} else {
+		#reverse for cs in cases { if len(rows) < limit { append(&rows, cs) } }
+	}
 	if len(rows) == 0 {
-		return {text = fmt.tprintf("还没有起卦记录（%s）。", journal.path()), structured = obj({"entries", "[]"}, {"path", q(journal.path())})}
+		msg := "没有到期待复盘的卦例。" if only_due else fmt.tprintf("还没有起卦记录（%s）。", journal.path())
+		return {text = msg, structured = obj({"entries", "[]"}, {"due_count", num(len(due))}, {"path", q(journal.path())})}
 	}
 	b := strings.builder_make(context.temp_allocator)
+	if len(due) > 0 && !only_due { fmt.sbprintf(&b, "%d 卦已到复盘日（journal due:true 查看）。\n\n", len(due)) }
 	items := make([dynamic]string, context.temp_allocator)
-	for o, i in rows {
-		id, _ := o["id"].(json.String)
-		ts, _ := o["ts"].(json.String)
-		question, _ := o["question"].(json.String)
-		p, _ := o["primary"].(json.Integer)
-		ch, has_ch := o["changed"].(json.Integer)
-		pn := clamp(int(p), 1, 64)
-		line := fmt.tprintf("%s  %s  %s %s", ts[:min(len(ts), 16)], id, gua.symbol(pn), gua.NAME_ZH[pn])
-		if has_ch {
-			cn := clamp(int(ch), 1, 64)
-			line = fmt.tprintf("%s 之 %s %s", line, gua.symbol(cn), gua.NAME_ZH[cn])
-		}
+	for cs, i in rows {
+		o := cs.entry
+		ts := journal.str(o, "ts")
 		if i > 0 { strings.write_byte(&b, '\n') }
-		fmt.sbprintf(&b, "%s\n    问：%s", line, question)
+		fmt.sbprintf(&b, "%s  %s  %s  [%s]\n    问：%s", ts[:min(len(ts), 16)], journal.str(o, "id"), case_title(o), case_status(cs, today), journal.str(o, "question"))
 		raw, _ := json.marshal(o, allocator = context.temp_allocator)
-		append(&items, string(raw))
+		note := ""
+		if cs.note != nil {
+			n := cs.note
+			conf, _ := n["confidence"].(json.Float)
+			fmt.sbprintf(&b, "\n    解读：%s，把握 %.0f%%；预测：%s", stance_zh(journal.str(n, "stance")), f64(conf) * 100, journal.str(n, "prediction"))
+			nraw, _ := json.marshal(n, allocator = context.temp_allocator)
+			note = string(nraw)
+		}
+		append(&items, mcp_merge(string(raw), obj({"status", q(case_status(cs, today))}, {"annotation", note})))
 	}
-	return {text = strings.to_string(b), structured = obj({"entries", arr(items[:])}, {"path", q(journal.path())})}
+	return {text = strings.to_string(b), structured = obj({"entries", arr(items[:])}, {"due_count", num(len(due))}, {"path", q(journal.path())})}
 }
 
 // ---------- 资源 ----------

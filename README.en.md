@@ -92,7 +92,7 @@ The journal is written on the machine that runs the server.
 | `lookup` | ✅ 0.1 | Find a hexagram by number, Chinese name, pinyin, English name, Unicode symbol or 6-bit string |
 | `relations` | ✅ 0.1 | Nuclear, complement and inverse; with moving lines, also the changed hexagram and reading |
 | `journal` | ✅ 0.1 | Recent casts |
-| `annotate` | planned | Store the model's reading: stance, confidence, review date |
+| `annotate` | ✅ 0.3 | Store the model's reading: stance, confidence (0–1), a checkable prediction, review date; once per cast, immutable |
 | `review` | planned | Record what actually happened |
 | `report` | planned | Hit rate, Brier calibration, placebo comparison, judge commentary |
 
@@ -101,14 +101,16 @@ Resources: `hexagram://1` … `hexagram://64` (template `hexagram://{number}`).
 ## Rules
 
 - **Which text to read:** Zhu Xi's rules from 《易学启蒙》, chosen by the number of moving lines.
-- **No recasting** (planned): repeat casts of the same question shortly after are flagged and excluded from statistics, so results cannot be cherry-picked.
+- **No recasting**: the same question (character-bigram similarity ≥ 0.7 after stripping punctuation) within 72 hours returns the original cast instead of a new one. A deliberate recast needs `recast:true` and a `reason`; it is marked 渎 and excluded from statistics. Tune with `GUA_RECAST_HOURS` (0 disables).
+- **Immutable readings**: only the first `annotate` per cast is kept, so reviews compare against what was actually predicted.
+- **Review reminders**: casts past their review date are listed in every `cast` result and counted at the top of `journal`, so the agent can ask how things turned out.
 - **Placebo control** (planned): at review time, a random hexagram is read blind and compared with the real one.
 
 ## Roadmap
 
 1. ✅ `cast` / `lookup` / `relations` / `journal`, automatic journal, Unicode and English names, reading positions
 2. ✅ Judgment and line texts (450 entries, Chinese + English, compile-time checked)
-3. `annotate`, review reminders, recast detection
+3. ✅ `annotate`, review reminders, recast detection
 4. `review` / `report`, placebo control, judge scoring
 
 ## License

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- 第 3 步（0.3.0）：`annotate` 工具（倾向、把握、可检验预测、复盘日；每卦一次、写下不改）；复盘提醒（到期卦例附在 `cast` 结果与 `journal` 中，`journal due:true`）；防重摇（同问 72 小时内返回原卦，`recast`+`reason` 才重起并记为“渎”；`GUA_RECAST_HOURS`）。
 - `--http [端口]`：Streamable HTTP 传输（只听 127.0.0.1，POST 回 JSON，GET 405）；令牌取 `GUA_HTTP_TOKEN`，放路径 `/mcp/<token>` 或 `Authorization: Bearer`。供 Perplexity 等只接远程 MCP 的客户端经隧道/反代使用。
 - 经文入库（0.2.0）：卦辞、爻辞、用九/用六共 450 条，中文通行本繁体 + Legge (1882) 英译；`cast`/`relations` 取辞附原文（`text_zh`/`text_en`），`lookup` 附卦辞，`hexagram://n` 含全部经文。
 - 编译期校验：`#load` 零拷贝嵌入，`#load_hash` 封印，约 1800 条 `#assert` 核对偏移、爻题与卦画；`tools/gen_texts.py` 生成。

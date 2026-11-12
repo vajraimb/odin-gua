@@ -39,7 +39,7 @@ check(len(out) == 10, f"10 条回复（通知不回）: {len(out)}")
 check(by[1]["result"]["protocolVersion"] == "2025-11-25", "initialize 协商版本")
 check("instructions" in by[1]["result"], "initialize 带 instructions")
 check("resultType" not in by[1]["result"], "旧版结果不带 resultType")
-check([t["name"] for t in by[2]["result"]["tools"]] == ["cast", "lookup", "relations", "journal"], "四个工具")
+check([t["name"] for t in by[2]["result"]["tools"]] == ["cast", "lookup", "relations", "journal", "annotate"], "五个工具")
 c = by[3]["result"]; sc = c["structuredContent"]
 check(not c["isError"] and sc["journaled"], "cast 成功并记入日志")
 check(sc["question"] == "下周的谈判" and len(sc["values"]) == 6, "cast 结构化字段")
@@ -85,6 +85,41 @@ now = _dt.datetime.now(_dt.timezone.utc)
 check(abs((now - ts).total_seconds()) < 60 and ts.utcoffset().total_seconds() == 8 * 3600, f"时间戳为正确的当地时间: {sc['ts']}")
 mode = oct(os.stat(os.path.join(home, "journal.jsonl")).st_mode & 0o777)
 check(mode == "0o600", f"日志权限 {mode}")
+print("== 第 3 步：annotate、复盘提醒、防重摇")
+home3 = tempfile.mkdtemp()
+def call(name, args, extra=None, cid=2):
+    msgs = [{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-11-25", "capabilities": {}, "clientInfo": {"name": "smoke-step3", "version": "1"}}},
+            {"jsonrpc": "2.0", "id": cid, "method": "tools/call", "params": {"name": name, "arguments": args}}]
+    return {m["id"]: m for m in session(msgs, dict({"GUA_HOME": home3}, **(extra or {})))}[cid]["result"]
+a = call("cast", {"question": "要不要接这个项目？"})
+aid = a["structuredContent"]["id"]
+check("annotate(id=" + aid in a["content"][0]["text"], "cast 提示调用 annotate")
+d = call("cast", {"question": "要不要接 这个项目"})
+check(d["structuredContent"].get("duplicate_of") == aid and not d["isError"], "相似问题不重摇，返回原卦")
+check("再三渎" in d["content"][0]["text"], "说明不再三")
+check(call("cast", {"question": "要不要接这个项目", "recast": True})["isError"], "recast 无 reason 报错")
+r = call("cast", {"question": "要不要接这个项目", "recast": True, "reason": "对方改了报价"})
+check(r["structuredContent"].get("du") is True, "recast+reason：新卦记为渎")
+check(call("cast", {"question": "要不要接这个项目"})["structuredContent"].get("duplicate_of") == aid, "渎卦不作为原卦，仍指向初筮")
+check(not call("cast", {"question": "今年要不要搬家"})["isError"], "不同问题照常起卦")
+check(call("cast", {"question": "要不要接这个项目"}, {"GUA_RECAST_HOURS": "0"})["structuredContent"].get("duplicate_of") is None, "GUA_RECAST_HOURS=0 关闭防重摇")
+check(call("annotate", {"id": aid, "stance": "favorable", "confidence": 0.7})["isError"], "缺 prediction 报错")
+check(call("annotate", {"id": aid, "stance": "good", "confidence": 0.7, "prediction": "x"})["isError"], "stance 枚举校验")
+check(call("annotate", {"id": "g00000000-000000", "stance": "mixed", "confidence": 0.5, "prediction": "x"})["isError"], "未知 id 报错")
+import datetime as _d0
+today = _d0.datetime.now(_d0.timezone(_d0.timedelta(hours=8))).date().isoformat()
+check(call("annotate", {"id": aid, "stance": "mixed", "confidence": 0.5, "prediction": "x", "review_after": "2000-01-01"})["isError"], "复盘日不能早于今天")
+n = call("annotate", {"id": aid, "stance": "favorable", "confidence": 0.7, "prediction": "两周内谈成，但预算比预期少", "review_after": today}, {"TZ": "Asia/Shanghai"})
+check(not n["isError"] and n["structuredContent"]["review_after"] == today, "annotate 记下解读")
+check(call("annotate", {"id": aid, "stance": "unfavorable", "confidence": 0.9, "prediction": "改主意"})["isError"], "落笔不改：第二次 annotate 报错")
+j = call("journal", {"due": True}, {"TZ": "Asia/Shanghai"})
+check(len(j["structuredContent"]["entries"]) == 1 and j["structuredContent"]["entries"][0]["annotation"]["prediction"].startswith("两周内"), "journal due:true 列出到期卦例")
+k = call("cast", {"question": "下个月去不去伦敦"}, {"TZ": "Asia/Shanghai"})
+check("复盘提醒" in k["content"][0]["text"] and k["structuredContent"]["due_reviews"][0]["id"] == aid, "起新卦时附复盘提醒")
+st = [e["status"] for e in call("journal", {"limit": 50}, {"TZ": "Asia/Shanghai"})["structuredContent"]["entries"]]
+check(any(x.startswith("渎") for x in st) and any(x.startswith("已到复盘日") for x in st) and "待解读" in st, f"journal 状态: {st}")
+print(); print(call("journal", {}, {"TZ": "Asia/Shanghai"})["content"][0]["text"]); print()
+
 print("== Streamable HTTP（--http）")
 import socket, time, urllib.request, urllib.error
 sk = socket.socket(); sk.bind(("127.0.0.1", 0)); port = sk.getsockname()[1]; sk.close()
