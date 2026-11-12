@@ -1,5 +1,7 @@
 # odin-gua
 
+中文 | [English](README.en.md)
+
 用 Odin 写的易经起卦 MCP 服务器：agent 里随时起卦、按规则取原文、自动记录，并像评估模型一样复盘。
 
 > 仅供娱乐与自我反思，不构成任何决策（含投资）依据。
@@ -59,8 +61,8 @@ curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh |
 ## 为什么用 Odin
 
 - 单个无依赖二进制，stdio 启动毫秒级，不需要 uv / npx。
-- 卦辞、Unicode、英文名、文王表用 `#load` 编进二进制，离线可用。
-- 数据正确性用 `#assert` 和启动自检保证（64 卦齐全、文王序“非综即错”成对、Unicode 映射）。
+- Unicode 卦符、英文名、文王表编译进二进制，离线可用；卦辞爻辞入库后同样用 `#load` 编入。
+- 数据正确性用 `#assert`（如 `size_of(Gua) == 1`）和启动自检保证（64 卦齐全、文王序“非综即错”成对、Unicode 映射）。
 - `bit_set[Yao; u8]`：一爻一位，错卦 `~g`、变卦 `g ~ moving`。
 
 ## 数据
@@ -87,8 +89,8 @@ curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh |
 ## 规则
 
 - **取辞**：按朱熹《易学启蒙》常用规则，由动爻数决定读哪段原文。
-- **不再三**：同一问题短时间内重复起卦标记为“渎”，不计入统计（防止挑结果）。
-- **安慰剂对照**：复盘时盲解一个随机卦，与本卦解读比较贴合度。
+- **不再三**（计划）：同一问题短时间内重复起卦标记为“渎”，不计入统计（防止挑结果）。
+- **安慰剂对照**（计划）：复盘时盲解一个随机卦，与本卦解读比较贴合度。
 
 ## 路线
 
@@ -96,6 +98,10 @@ curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh |
 2. 卦辞爻辞原文入库（逐条核对）+ `reading` 规则
 3. `annotate`、复盘提醒、防重摇
 4. `review` / `report`、安慰剂对照、评委打分
+
+## 许可
+
+[MIT](LICENSE)。
 
 ## 目录
 

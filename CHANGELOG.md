@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- 仓库公开；MIT 许可证。
+- 英文 README（`README.en.md`），中英互链。
+- `curl ... | bash` 一行安装，不依赖 gh。
+
 ## 0.1.1 — 2026-11-12
 
 - `install.sh`：一条命令准备 Odin dev-2026-07（缺则下载并校验 SHA256）、编译、自检，并注册到 Claude Code、Codex、Cursor、Claude Desktop；支持 `--dry-run`、`--clients`、`--prefix`、`--uninstall`，改 JSON 前自动备份。
