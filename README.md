@@ -6,22 +6,29 @@
 
 ## 安装
 
-需要 [Odin dev-2026-07](https://github.com/odin-lang/Odin/releases/tag/dev-2026-07)（Linux 另需 clang）。
+一条命令（macOS / Linux）：自动准备 Odin dev-2026-07（缺则下载并校验 SHA256）、编译、自检、注册到本机的 Claude Code / Codex / Cursor / Claude Desktop：
+
+```bash
+./install.sh            # --dry-run 先看会做什么；--clients none 只安装；--uninstall 卸载
+```
+
+也可以直接让 agent 来装：它会读 [AGENTS.md](AGENTS.md)（Claude Code 经 `CLAUDE.md` 引入）照做。装好后重启客户端，在对话里说“帮我起一卦，问下周的谈判”即可。
+
+手动编译：
 
 ```bash
 ./build.sh          # 生成 bin/odin-gua（约 450 KB，无依赖）
 ./build.sh test     # 再跑单元测试与新旧两代协议的 stdio 冒烟测试
 ```
 
-接入客户端（路径用绝对路径）：
+命令行参数：
 
-| 客户端 | 方式 |
+| 参数 | 作用 |
 |---|---|
-| Claude Code | `claude mcp add odin-gua -- /abs/path/bin/odin-gua` |
-| Codex CLI | `codex mcp add odin-gua -- /abs/path/bin/odin-gua` |
-| Claude Desktop / Cursor 等 | 在 MCP 配置里加 `"odin-gua": {"command": "/abs/path/bin/odin-gua"}` |
-
-之后在对话里直接说“帮我起一卦，问下周的谈判”即可。
+| （无） | 以 stdio MCP 服务器运行 |
+| `--self-test` | 进程内跑 8 项协议与工具自检（用临时目录，不写用户日志） |
+| `--print-config` | 打印本二进制的 `mcpServers` 配置片段 |
+| `--version` / `--help` | 版本 / 用法 |
 
 环境变量（都可不设）：
 
@@ -93,7 +100,10 @@
 - `src/gua` — 卦的表示、文王表、起卦、取辞规则（含单元测试）
 - `src/mcp` — stdio JSON-RPC 协议层（新旧两代）
 - `src/journal` — 卦例日志
-- `src/main.odin` — 工具与资源
+- `src/main.odin` — 工具与资源、命令行参数
+- `src/selftest.odin` — `--self-test` 与 `--print-config`
+- `install.sh` — 一键安装/注册/卸载
+- `AGENTS.md` / `CLAUDE.md` — 给 agent 读的安装与使用说明
 - `tests/smoke.py` — 协议冒烟测试
 - `tools/gen_names_en.py` — 从 Unicode 字符名生成英文卦名表
 - `proto/qigua` — 起卦与互错综变原型（含文王表自检）

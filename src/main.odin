@@ -15,7 +15,7 @@ import "gua"
 import "journal"
 import "mcp"
 
-VERSION :: "0.1.0"
+VERSION :: "0.1.1"
 
 obj :: mcp.obj
 q :: mcp.q
@@ -35,11 +35,6 @@ main :: proc() {
 		fmt.eprintln("odin-gua: 数据自检失败:", msg)
 		os.exit(1)
 	}
-	if len(os.args) > 1 && os.args[1] == "--version" {
-		fmt.println("odin-gua", VERSION)
-		return
-	}
-
 	s := mcp.Server{name = "odin-gua", version = VERSION, instructions = INSTRUCTIONS}
 	append(&s.tools,
 		mcp.Tool{
@@ -70,8 +65,32 @@ main :: proc() {
 	s.list_resources = list_resources
 	s.read_resource = read_resource
 	s.resource_templates = []mcp.Resource{{uri = "hexagram://{number}", name = "卦", description = "第 number 卦（1-64）的基本信息", mime = "application/json"}}
-	mcp.run(&s)
+
+	arg := os.args[1] if len(os.args) > 1 else ""
+	switch arg {
+	case "":
+		mcp.run(&s)
+	case "--version":
+		fmt.println("odin-gua", VERSION)
+	case "--self-test":
+		fmt.printf("odin-gua %s 自检\n", VERSION)
+		if !self_test(&s) { fmt.println("自检失败"); os.exit(1) }
+		fmt.println("自检通过")
+	case "--print-config":
+		print_config()
+	case:
+		fmt.println(USAGE)
+		if arg != "-h" && arg != "--help" { os.exit(2) }
+	}
 }
+
+USAGE :: `odin-gua — 易经起卦 MCP 服务器（stdio）
+
+用法：
+  odin-gua                 以 MCP stdio 服务器运行（由客户端启动）
+  odin-gua --self-test     进程内自检（不写用户日志）
+  odin-gua --print-config  打印客户端配置 JSON
+  odin-gua --version`
 
 // ---------- 卦的 JSON ----------
 

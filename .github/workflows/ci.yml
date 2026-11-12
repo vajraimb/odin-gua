@@ -24,3 +24,12 @@ jobs:
       - run: odin version && clang --version | head -1
       - name: Build and test
         run: ./build.sh test
+      - name: install.sh (dry-run + real, isolated HOME)
+        run: |
+          export HOME="$RUNNER_TEMP/home" && mkdir -p "$HOME"
+          ./install.sh --dry-run --clients none
+          ./install.sh --clients none
+          "$HOME/.gua/bin/odin-gua" --self-test
+          "$HOME/.gua/bin/odin-gua" --version
+          ./install.sh --uninstall --clients none
+          test ! -e "$HOME/.gua/bin/odin-gua"
