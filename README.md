@@ -97,7 +97,7 @@ GUA_HTTP_TOKEN=$(openssl rand -hex 16) odin-gua --http 8765   # 只监听 127.0.
 | `review` | 计划 | 记录事后结果 |
 | `report` | 计划 | 命中率、Brier 校准、安慰剂对照、评委点评 |
 
-资源：`hexagram://1` … `hexagram://64`（模板 `hexagram://{number}`），含卦辞、六爻爻辞与用九/用六，中英对照。`ui://odin-gua/coins` 是掷钱回放（MCP Apps，`text/html;profile=mcp-app`）：只重现 `coins` 里已经算好的正反面，不在页面里另摇；大衍法只显示六爻。终端等不支持该扩展的客户端仍只看文本。
+资源：`hexagram://1` … `hexagram://64`（模板 `hexagram://{number}`），含卦辞、六爻爻辞与用九/用六，中英对照。`ui://odin-gua/coins` 是掷钱回放（MCP Apps，`text/html;profile=mcp-app`）：一行字高，三枚钱掷过，六爻从这一行下面长出；只重现 `coins` 里已经算好的正反面。大衍法只显示六爻。终端等不支持该扩展的客户端仍只看文本。
 
 ## 规则
 

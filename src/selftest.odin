@@ -24,7 +24,7 @@ self_test :: proc(s: ^mcp.Server) -> bool {
 		{"旧版 initialize", `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"self-test","version":"1"}}}`, {`"protocolVersion":"2025-11-25"`, `"instructions"`}},
 		{"旧版 tools/list", `{"jsonrpc":"2.0","id":2,"method":"tools/list"}`, {`"name":"cast"`, `"name":"lookup"`, `"name":"relations"`, `"name":"journal"`, `"ui://odin-gua/coins"`}},
 		{"cast 起卦并记日志", `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"cast","arguments":{"question":"自检"}}}`, {`"isError":false`, `"journaled":true`, `"reading"`, `"text_zh"`, `"text_en"`, `"animate":true`, `"coins":[[`}},
-		{"掷钱界面", `{"jsonrpc":"2.0","id":31,"method":"resources/read","params":{"uri":"ui://odin-gua/coins"}}`, {`"text/html;profile=mcp-app"`, `ui/initialize`, `"prefersBorder":true`}},
+		{"掷钱界面", `{"jsonrpc":"2.0","id":31,"method":"resources/read","params":{"uri":"ui://odin-gua/coins"}}`, {`"text/html;profile=mcp-app"`, `ui/initialize`, `"prefersBorder":false`}},
 		{"lookup ䷾", `{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"lookup","arguments":{"query":"䷾"}}}`, {`"number":63`, `既济`}},
 		{"relations 小畜", `{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"relations","arguments":{"query":"小畜","moving":[3,6]}}}`, {`"changed":{"number":60`, `既雨既處`, `The topmost line, undivided`}},
 		{"journal", `{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"journal","arguments":{}}}`, {`自检`}},

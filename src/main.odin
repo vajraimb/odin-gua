@@ -15,7 +15,7 @@ import "gua"
 import "journal"
 import "mcp"
 
-VERSION :: "0.4.0"
+VERSION :: "0.4.1"
 
 COINS_UI :: "ui://odin-gua/coins"
 COINS_HTML :: #load("coins.html")
@@ -35,7 +35,7 @@ INSTRUCTIONS :: `易经起卦服务（I Ching casting）。
 - 任何结果开头出现“【odin-gua 已更新 …】”时，按其中要点调整用法，并用一两句话告诉用户这次更新的变化。
 - 提醒用户：这是供自我反思的参考，不构成任何决策（包括投资）依据。
 - 查卦用 lookup，看互错综变用 relations，回看历史用 journal（due:true 只看到期待复盘的）。
-- 三钱法的 cast 带 coins：每爻三枚，2 为阴（字）、3 为阳（背），自初爻到上爻。支持 MCP Apps 的客户端会在工具卡片里播放这次的 3D 回放。钱面以 coins 为准，不要另编，也不要在解卦正文里插入动图。大衍法没有硬币。同一问题返回原卦时是初筮的钱面，不是新的一掷。`
+- 三钱法的 cast 带 coins：每爻三枚，2 为阴（字）、3 为阳（背），自初爻到上爻。支持 MCP Apps 的客户端在工具卡片里播放一行字高的精细回放，六爻从这一行下面长出。钱面以 coins 为准，不要另编，也不要在解卦正文里插入动图。大衍法没有硬币。同一问题返回原卦时是初筮的钱面，不是新的一掷。`
 
 main :: proc() {
 	if ok, msg := gua.self_check(); !ok {
@@ -451,7 +451,7 @@ list_resources :: proc() -> []mcp.Resource {
 	}
 	append(&out, mcp.Resource{
 		uri = COINS_UI, name = "三钱回放",
-		description = "cast 的掷钱 3D 回放（MCP App）。画面只重现服务器算好的钱面。",
+		description = "cast 的掷钱回放（MCP App）。一行字高，只重现服务器算好的钱面。",
 		mime = "text/html;profile=mcp-app",
 	})
 	return out[:]
@@ -459,7 +459,7 @@ list_resources :: proc() -> []mcp.Resource {
 
 read_resource :: proc(uri: string) -> (text: string, mime: string, meta: string, ok: bool) {
 	if uri == COINS_UI {
-		return string(COINS_HTML), "text/html;profile=mcp-app", obj({"ui", obj({"prefersBorder", "true"})}), true
+		return string(COINS_HTML), "text/html;profile=mcp-app", obj({"ui", obj({"prefersBorder", "false"})}), true
 	}
 	if !strings.has_prefix(uri, "hexagram://") { return }
 	n, isnum := strconv.parse_int(uri[len("hexagram://"):], 10)
