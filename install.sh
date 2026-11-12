@@ -2,6 +2,7 @@
 # odin-gua 一键安装：准备 Odin 工具链 → 编译 → 自检 → 注册到本机 MCP 客户端。
 #
 # 可重复运行（幂等）。agent 照 AGENTS.md 执行即可。
+# 不想先 clone：curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh | bash
 #
 #   ./install.sh                     安装并注册到检测到的客户端
 #   ./install.sh --clients none      只安装，不注册
@@ -21,7 +22,11 @@ BIN="$PREFIX/bin/$NAME"
 CLIENTS="auto"
 DRY=0
 UNINSTALL=0
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
+	REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+	REPO_DIR=""   # curl ... | bash：没有脚本文件，稍后 clone 源码
+fi
 
 say()  { printf '\033[1m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m警告:\033[0m %s\n' "$*" >&2; }
@@ -36,7 +41,7 @@ while [[ $# -gt 0 ]]; do
 		--prefix)    PREFIX="${2:?}"; BIN="$PREFIX/bin/$NAME"; shift 2 ;;
 		--dry-run)   DRY=1; shift ;;
 		--uninstall) UNINSTALL=1; shift ;;
-		-h|--help)   sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+		-h|--help)   sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
 		*) die "未知参数: $1（见 --help）" ;;
 	esac
 done
@@ -191,8 +196,7 @@ if [[ ! -f "$SRC/src/main.odin" ]]; then
 		say "更新源码 $SRC"; run git -C "$SRC" pull --ff-only
 	else
 		say "获取源码到 $SRC"
-		if have gh; then run gh repo clone vajraimb/odin-gua "$SRC"
-		else run git clone https://github.com/vajraimb/odin-gua "$SRC"; fi
+		run git clone --depth 1 https://github.com/vajraimb/odin-gua.git "$SRC"
 	fi
 fi
 

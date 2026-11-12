@@ -40,7 +40,12 @@
 ./install.sh --uninstall                  # 取消注册、删除二进制，保留日志
 ```
 
-如果当前目录不是仓库（例如只拿到 install.sh），脚本会用 `gh repo clone vajraimb/odin-gua` 或 `git clone` 拉源码到 `~/.gua/src`。仓库是私有的，需要已登录 `gh`。
+不想先 clone 也可以一行装好（脚本发现不在仓库里，会自动 `git clone` 源码到 `~/.gua/src`，再次运行会 `git pull` 更新）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh | bash
+# 带参数：... | bash -s -- --clients claude-code
+```
 
 ## 验证
 
@@ -59,7 +64,7 @@
 | macOS 报缺 Xcode Command Line Tools | 让用户运行 `xcode-select --install`，装完重跑 |
 | Linux 报缺 clang | `sudo apt install clang`（或对应发行版的包），重跑 |
 | SHA256 不匹配 | 不要跳过校验；删掉 `~/.gua/toolchain` 重试，仍不匹配就停下告知用户 |
-| clone 失败 | 私有仓库，需要 `gh auth login`；请用户自己登录，不要索要或处理凭据 |
+| clone 失败 | 检查网络与 git；仓库公开，无需登录 |
 | 自检失败 | 不要注册；把输出原样给用户看 |
 | 客户端里看不到工具 | 重启客户端；检查配置里的路径是绝对路径且文件可执行 |
 
