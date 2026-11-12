@@ -9,6 +9,8 @@
 一条命令（macOS / Linux）：自动准备 Odin dev-2026-07（缺则下载并校验 SHA256）、编译、自检、注册到本机的 Claude Code / Codex / Cursor / Claude Desktop：
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh | bash
+# 或在克隆好的仓库里：
 ./install.sh            # --dry-run 先看会做什么；--clients none 只安装；--uninstall 卸载
 ```
 
