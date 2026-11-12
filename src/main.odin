@@ -15,7 +15,7 @@ import "gua"
 import "journal"
 import "mcp"
 
-VERSION :: "0.1.1"
+VERSION :: "0.2.0"
 
 obj :: mcp.obj
 q :: mcp.q
@@ -26,7 +26,7 @@ boolean :: mcp.boolean
 INSTRUCTIONS :: `易经起卦服务（I Ching casting）。
 - 用户想起卦、占卜、问卦时（如“起一卦”“帮我卜一下”“cast the I Ching”），调用 cast，并把用户关心的事提炼成一句 question 传入；不必让用户自己抛硬币。
 - 卦象由服务器随机数决定并自动记入日志。绝不要自行编造卦象，也不要为同一问题反复起卦挑结果（初筮告，再三渎）。
-- 解读以返回的 reading（朱熹取辞规则：该读哪条卦辞或爻辞）为主线，结合本卦、之卦、互卦与问题来讲；先给结论倾向，再给理由。
+- 解读以返回的 reading（朱熹取辞规则：该读哪条卦辞或爻辞）为主线；reading.focus 里已附原文 text_zh（通行本）与 text_en（Legge 1882 英译），请据原文引述，不要凭记忆改写经文。结合本卦、之卦、互卦与问题来讲；先给结论倾向，再给理由。
 - 提醒用户：这是供自我反思的参考，不构成任何决策（包括投资）依据。
 - 查卦用 lookup，看互错综变用 relations，回看历史用 journal。`
 
@@ -72,6 +72,7 @@ main :: proc() {
 		mcp.run(&s)
 	case "--version":
 		fmt.println("odin-gua", VERSION)
+		fmt.println("texts", gua.texts_id())
 	case "--self-test":
 		fmt.printf("odin-gua %s 自检\n", VERSION)
 		if !self_test(&s) { fmt.println("自检失败"); os.exit(1) }
@@ -107,7 +108,11 @@ hex_json :: proc(g: gua.Gua) -> string {
 		{"name_zh", q(gua.NAME_ZH[n])},
 		{"pinyin", q(gua.PINYIN[n])},
 		{"name_en", q(gua.NAME_EN[n])},
+		{"name_trad", q(gua.name_trad[n])},
+		{"name_legge", q(gua.name_legge[n])},
 		{"binary", q(gua.binary_string(g))},
+		{"judgment_zh", q(gua.judgment_text(n))},
+		{"judgment_en", q(gua.judgment_text(n, .En))},
 		{"upper", trigram_json(gua.upper(g))},
 		{"lower", trigram_json(gua.lower(g))},
 	)
@@ -145,6 +150,8 @@ reading_json :: proc(g, m: gua.Gua) -> string {
 			{"line_name", q(gua.line_name(it.line, it.line in h)) if it.kind == .Line else ""},
 			{"main", boolean(it.main)},
 			{"label", q(gua.focus_label(it, g, m))},
+			{"text_zh", q(gua.focus_text(it, g, m, .Zh))},
+			{"text_en", q(gua.focus_text(it, g, m, .En))},
 		))
 	}
 	return obj({"moving_count", num(r.moving_count)}, {"rule", q(r.rule)}, {"focus", arr(items[:])})
@@ -244,6 +251,7 @@ tool_cast :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 		{"moving", positions(m)},
 		{"client", q(c.client) if c.client != "" else ""},
 		{"server", q(VERSION)},
+		{"texts", q(gua.texts_id())},
 	)
 	saved := journal.append_line(entry)
 
@@ -258,8 +266,9 @@ tool_cast :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 		fmt.sbprintf(&b, "动爻：无\n")
 	}
 	fmt.sbprintf(&b, "互卦 %s\n\n", gua.title(gua.hu(g)))
-	fmt.sbprintf(&b, "取辞（朱熹）：%s\n  → %s\n\n", r.rule, gua.focus_summary(r, g, m))
-	fmt.sbprintf(&b, "卦辞、爻辞原文将在下一版加入；请依据上面的取辞位置解读。仅供自我反思，不构成决策依据。")
+	fmt.sbprintf(&b, "取辞（朱熹）：%s\n", r.rule)
+	write_focus(&b, r, g, m)
+	fmt.sbprintf(&b, "\n仅供自我反思，不构成决策依据。")
 	if !saved { fmt.sbprintf(&b, "\n（注意：日志写入失败：%s）", journal.path()) }
 
 	structured := obj(
@@ -287,7 +296,8 @@ tool_lookup :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 	items := make([dynamic]string, context.temp_allocator)
 	for h, i in hits {
 		if i > 0 { strings.write_string(&b, "\n\n") }
-		fmt.sbprintf(&b, "%s\n%s", gua.title(h), gua.draw(h))
+		n := gua.number(h)
+		fmt.sbprintf(&b, "%s\n%s\n卦辞：%s\n%s", gua.title(h), gua.draw(h), gua.judgment_text(n), gua.judgment_text(n, .En))
 		append(&items, hex_json(h))
 	}
 	return {text = strings.to_string(b), structured = obj({"results", arr(items[:])})}
@@ -308,7 +318,8 @@ tool_relations :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 	fmt.sbprintf(&b, "本卦 %s\n互卦 %s\n错卦 %s\n综卦 %s", gua.title(g), gua.title(gua.hu(g)), gua.title(gua.cuo(g)), gua.title(gua.zong(g)))
 	if m != {} {
 		r := gua.reading(g, m)
-		fmt.sbprintf(&b, "\n动爻 %s → 之卦 %s\n取辞（朱熹）：%s\n  → %s", moving_names(g, m), gua.title(gua.bian(g, m)), r.rule, gua.focus_summary(r, g, m))
+		fmt.sbprintf(&b, "\n动爻 %s → 之卦 %s\n取辞（朱熹）：%s\n", moving_names(g, m), gua.title(gua.bian(g, m)), r.rule)
+		write_focus(&b, r, g, m)
 	}
 	structured := obj(
 		{"hexagram", hex_json(g)},
@@ -369,5 +380,33 @@ read_resource :: proc(uri: string) -> (text: string, mime: string, ok: bool) {
 	if !strings.has_prefix(uri, "hexagram://") { return }
 	n, isnum := strconv.parse_int(uri[len("hexagram://"):], 10)
 	if !isnum || n < 1 || n > 64 { return }
-	return hex_json(gua.BY_NUMBER[n]), "application/json", true
+	g := gua.BY_NUMBER[n]
+	lines := make([dynamic]string, context.temp_allocator)
+	for y in gua.Yao {
+		append(&lines, obj(
+			{"line", num(int(y) + 1)},
+			{"line_name", q(gua.line_name(y, y in g))},
+			{"text_zh", q(gua.line_text(n, y))},
+			{"text_en", q(gua.line_text(n, y, .En))},
+		))
+	}
+	yong := ""
+	if yz := gua.yong_text(n); yz != "" {
+		yong = obj({"name", q("用九" if n == 1 else "用六")}, {"text_zh", q(yz)}, {"text_en", q(gua.yong_text(n, .En))})
+	}
+	full := obj({"lines", arr(lines[:])}, {"yong", yong}, {"texts", q(gua.texts_id())})
+	return mcp_merge(hex_json(g), full), "application/json", true
+}
+
+// 合并两个 JSON 对象字面量
+mcp_merge :: proc(a, b: string) -> string {
+	return strings.concatenate({a[:len(a) - 1], ",", b[1:]}, context.temp_allocator)
+}
+
+// 取辞项逐条列出，附中英原文
+write_focus :: proc(b: ^strings.Builder, r: gua.Reading, g, m: gua.Gua) {
+	for i in 0 ..< r.n {
+		it := r.items[i]
+		fmt.sbprintf(b, "  → %s\n    %s\n    %s\n", gua.focus_label(it, g, m), gua.focus_text(it, g, m, .Zh), gua.focus_text(it, g, m, .En))
+	}
 }

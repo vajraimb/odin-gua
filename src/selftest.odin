@@ -23,9 +23,9 @@ self_test :: proc(s: ^mcp.Server) -> bool {
 	cases := []Case{
 		{"旧版 initialize", `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"self-test","version":"1"}}}`, {`"protocolVersion":"2025-11-25"`, `"instructions"`}},
 		{"旧版 tools/list", `{"jsonrpc":"2.0","id":2,"method":"tools/list"}`, {`"name":"cast"`, `"name":"lookup"`, `"name":"relations"`, `"name":"journal"`}},
-		{"cast 起卦并记日志", `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"cast","arguments":{"question":"自检"}}}`, {`"isError":false`, `"journaled":true`, `"reading"`}},
+		{"cast 起卦并记日志", `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"cast","arguments":{"question":"自检"}}}`, {`"isError":false`, `"journaled":true`, `"reading"`, `"text_zh"`, `"text_en"`}},
 		{"lookup ䷾", `{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"lookup","arguments":{"query":"䷾"}}}`, {`"number":63`, `既济`}},
-		{"relations 小畜", `{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"relations","arguments":{"query":"小畜","moving":[3,6]}}}`, {`"changed":{"number":60`}},
+		{"relations 小畜", `{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"relations","arguments":{"query":"小畜","moving":[3,6]}}}`, {`"changed":{"number":60`, `既雨既處`, `The topmost line, undivided`}},
 		{"journal", `{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"journal","arguments":{}}}`, {`自检`}},
 		{"新版 server/discover", `{"jsonrpc":"2.0","id":7,"method":"server/discover","params":{` + M + `}}`, {`"resultType":"complete"`, `"supportedVersions"`, `"ttlMs"`}},
 		{"新版 版本不符", `{"jsonrpc":"2.0","id":8,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"1900-01-01"}}}`, {`-32022`}},

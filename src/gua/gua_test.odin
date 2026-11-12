@@ -1,5 +1,6 @@
 package gua
 
+import "core:strings"
 import "core:testing"
 
 @(test)
@@ -93,4 +94,27 @@ test_reading_rules :: proc(t: ^testing.T) {
 	testing.expect_value(t, focus_summary(r6, QIAN, ALL), "本卦乾 用九（主）")
 	r6b := reading(xiaochu, ALL)
 	testing.expect_value(t, focus_summary(r6b, xiaochu, ALL), "之卦豫 卦辞（主）")
+}
+
+@(test)
+test_texts :: proc(t: ^testing.T) {
+	hex_bits := HEX_BITS
+	// 生成表里的卦画与运行时卦序一致（编译期守卫用的是 HEX_BITS，这里对上 BY_NUMBER）
+	for n in 1 ..= 64 {
+		bits: u8
+		for y in Yao { if y in BY_NUMBER[n] { bits |= 1 << u8(y) } }
+		testing.expectf(t, bits == hex_bits[n], "卦 %d 卦画不一致", n)
+	}
+	testing.expect_value(t, judgment_text(1), "元亨，利貞。")
+	testing.expect_value(t, line_text(1, .Chu), "潛龍，勿用。")
+	testing.expect(t, strings.has_prefix(judgment_text(1, .En), "Khien (represents)"))
+	for n in 1 ..= 64 {
+		testing.expectf(t, (yong_text(n) != "") == (n <= 2), "用九/用六 只属于乾坤：%d", n)
+		testing.expect(t, judgment_text(n) != "" && judgment_text(n, .En) != "")
+	}
+	testing.expect_value(t, yong_text(2), "利永貞。")
+	// 零拷贝：返回的切片指向编进二进制的那份经文
+	s := line_text(64, .Shang)
+	p, lo := uintptr(raw_data(s)), uintptr(raw_data(zh_text))
+	testing.expect(t, p >= lo && p < lo + uintptr(len(zh_text)))
 }

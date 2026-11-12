@@ -61,8 +61,8 @@ curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh |
 ## 为什么用 Odin
 
 - 单个无依赖二进制，stdio 启动毫秒级，不需要 uv / npx。
-- Unicode 卦符、英文名、文王表编译进二进制，离线可用；卦辞爻辞入库后同样用 `#load` 编入。
-- 数据正确性用 `#assert`（如 `size_of(Gua) == 1`）和启动自检保证（64 卦齐全、文王序“非综即错”成对、Unicode 映射）。
+- Unicode 卦符、英文名、文王表、卦辞爻辞（中英 450 条）编译进二进制，离线可用；经文用 `#load` 零拷贝嵌入。
+- 数据正确性在编译期保证：`#load_hash` 封印经文文件，约 1800 条 `#assert` 逐条核对偏移、爻题、卦画（中文“九/六”与英文“undivided/divided”都须与卦的比特一致）；另有启动自检（64 卦齐全、文王序“非综即错”成对、Unicode 映射）。
 - `bit_set[Yao; u8]`：一爻一位，错卦 `~g`、变卦 `g ~ moving`。
 
 ## 数据
@@ -70,21 +70,21 @@ curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh |
 - 卦符：U+4DC0–U+4DFF，按文王序排列，`0x4DC0 + 序号 - 1`。
 - 英文名：Unicode 字符名（如 `HEXAGRAM FOR THE CREATIVE HEAVEN`）。
 - 八卦：U+2630–U+2637；单爻：⚊ U+268A、⚋ U+268B。
-- 卦辞爻辞：待逐条核对公开文本；英文译文计划用 Legge (1882，公有领域)。
+- 卦辞爻辞：通行本繁体，底本 ctext 武英殿本《周易正義》，以維基文庫、四部叢刊、Project Gutenberg 互校；英文 Legge (1882，公有领域)。来源、改字与异文见 [data/SOURCES.md](data/SOURCES.md)。
 
 ## 工具
 
 | 工具 | 状态 | 作用 |
 |---|---|---|
-| `cast` | ✅ 0.1 | 起卦（三钱法/大衍法概率），必须带 `question`；返回本卦、动爻、之卦、互卦、取辞位置，自动记日志 |
-| `lookup` | ✅ 0.1 | 按序号、中文名、拼音、英文名、Unicode 卦符、六位二进制查卦 |
+| `cast` | ✅ 0.1 | 起卦（三钱法/大衍法概率），必须带 `question`；返回本卦、动爻、之卦、互卦、取辞及中英原文，自动记日志 |
+| `lookup` | ✅ 0.1 | 按序号、中文名、拼音、英文名、Unicode 卦符、六位二进制查卦；附卦辞 |
 | `relations` | ✅ 0.1 | 互、错、综；给动爻时再给之卦与取辞 |
 | `journal` | ✅ 0.1 | 最近的起卦记录 |
 | `annotate` | 计划 | 写回模型解读：倾向、置信度、复盘日期 |
 | `review` | 计划 | 记录事后结果 |
 | `report` | 计划 | 命中率、Brier 校准、安慰剂对照、评委点评 |
 
-资源：`hexagram://1` … `hexagram://64`（模板 `hexagram://{number}`）。
+资源：`hexagram://1` … `hexagram://64`（模板 `hexagram://{number}`），含卦辞、六爻爻辞与用九/用六，中英对照。
 
 ## 规则
 
@@ -95,7 +95,7 @@ curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh |
 ## 路线
 
 1. ✅ `cast` / `lookup` / `relations` / `journal` + 自动日志 + Unicode/英文名 + 取辞位置
-2. 卦辞爻辞原文入库（逐条核对）+ `reading` 规则
+2. ✅ 卦辞爻辞原文入库（中英 450 条，编译期校验）
 3. `annotate`、复盘提醒、防重摇
 4. `review` / `report`、安慰剂对照、评委打分
 
@@ -114,6 +114,8 @@ curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh |
 - `AGENTS.md` / `CLAUDE.md` — 给 agent 读的安装与使用说明
 - `tests/smoke.py` — 协议冒烟测试
 - `tools/gen_names_en.py` — 从 Unicode 字符名生成英文卦名表
+- `tools/gen_texts.py` — 由 `data/` 经文生成偏移表与编译期断言
+- `data/` — 经文（`zhouyi.txt`、`legge.txt`）、逐条来源 `provenance.tsv`、`SOURCES.md`
 - `proto/qigua` — 起卦与互错综变原型（含文王表自检）
 - `proto/gua_types` — “卦即类型”编译期实验
 - `docs/mcp-survey.md` — Odin MCP 现状调研

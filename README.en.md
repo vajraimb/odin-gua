@@ -61,7 +61,8 @@ A request whose `_meta` contains `io.modelcontextprotocol/protocolVersion` gets 
 ## Why Odin
 
 - A single dependency-free binary that starts in milliseconds over stdio. No uv, no npx.
-- Unicode symbols, English names and the King Wen table are compiled in and work offline; line texts will be embedded with `#load` once added.
+- Unicode symbols, English names, the King Wen table and all 450 judgment/line texts (Chinese and English) are compiled in and work offline; texts are embedded zero-copy with `#load`.
+- Integrity is checked at compile time: `#load_hash` seals the text files, and about 1,800 `#assert`s verify every offset, line heading and hexagram bit (the Chinese 九/六 and the English "undivided/divided" must both match the hexagram).
 - Data integrity is enforced with `#assert` (e.g. `size_of(Gua) == 1`) and a startup self-check (all 64 present, King Wen pairs are inverses or complements, Unicode mapping).
 - `bit_set[Yao; u8]`: one bit per line. The complement is `~g`, the changed hexagram is `g ~ moving`.
 
@@ -70,7 +71,7 @@ A request whose `_meta` contains `io.modelcontextprotocol/protocolVersion` gets 
 - Symbols: U+4DC0–U+4DFF in King Wen order, `0x4DC0 + number - 1`.
 - English names: Unicode character names (e.g. `HEXAGRAM FOR THE CREATIVE HEAVEN`).
 - Trigrams: U+2630–U+2637; single lines: ⚊ U+268A, ⚋ U+268B.
-- Judgment and line texts: not yet included. They will be checked line by line against public sources; English will use Legge (1882, public domain).
+- Judgment and line texts: the received text in traditional characters (base: ctext, Wuyingdian 周易正義; collated against Wikisource, the Sibu Congkan edition and Project Gutenberg). English: Legge (1882, public domain). See [data/SOURCES.md](data/SOURCES.md).
 
 ## Tools
 
@@ -95,7 +96,7 @@ Resources: `hexagram://1` … `hexagram://64` (template `hexagram://{number}`).
 ## Roadmap
 
 1. ✅ `cast` / `lookup` / `relations` / `journal`, automatic journal, Unicode and English names, reading positions
-2. Judgment and line texts (verified line by line)
+2. ✅ Judgment and line texts (450 entries, Chinese + English, compile-time checked)
 3. `annotate`, review reminders, recast detection
 4. `review` / `report`, placebo control, judge scoring
 
@@ -114,6 +115,8 @@ Resources: `hexagram://1` … `hexagram://64` (template `hexagram://{number}`).
 - `AGENTS.md` / `CLAUDE.md` — install and usage instructions for agents (Chinese)
 - `tests/smoke.py` — protocol smoke tests
 - `tools/gen_names_en.py` — generates English names from Unicode character names
+- `tools/gen_texts.py` — generates the offset tables and compile-time asserts from `data/`
+- `data/` — texts (`zhouyi.txt`, `legge.txt`), per-entry `provenance.tsv`, `SOURCES.md`
 - `proto/qigua` — casting and derived-hexagram prototype
 - `proto/gua_types` — "hexagrams as types" compile-time experiment
 - `docs/mcp-survey.md` — survey of MCP in Odin (Chinese)

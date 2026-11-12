@@ -82,13 +82,15 @@ odin build src -out:%USERPROFILE%\.gua\bin\odin-gua.exe -o:speed
 - 用户想起卦、占卜、问卦时调用 `cast`，把用户关心的事提炼成一句 `question`；不要让用户自己抛硬币。
 - 卦象只能来自 `cast` 的返回。绝不自行编造，也不为同一问题反复起卦挑结果（初筮告，再三渎）。
 - 解读以返回的 `reading`（朱熹取辞规则：读哪条卦辞或爻辞）为主线，结合本卦、之卦、互卦与问题；先给倾向，再给理由。
+- `reading.focus[].text_zh` / `text_en` 是原文（通行本 / Legge 1882），引用时照录，不要凭记忆改写经文。
 - 提醒用户：仅供自我反思，不构成任何决策（包括投资）依据。
 - 查卦用 `lookup`，看互错综变用 `relations`，回看历史用 `journal`。
 
 ## 开发
 
 - 工具链固定 Odin `dev-2026-07`；Linux 需 clang。
-- `./build.sh` 编译到 `bin/odin-gua`；`./build.sh test` 跑单元测试（`src/gua`）和 `tests/smoke.py`（26 项 stdio 冒烟，新旧两代协议）。
+- `./build.sh` 编译到 `bin/odin-gua`；`./build.sh test` 跑单元测试（`src/gua`）和 `tests/smoke.py`（stdio 冒烟，新旧两代协议）。
+- 改了 `data/zhouyi.txt` 或 `data/legge.txt` 后必须运行 `python3 tools/gen_texts.py`，否则编译期 `#load_hash` 断言失败；这是预期行为，不要删断言。
 - 编译选项必须过 `-vet -strict-style`。
 - 每个请求用 `context.temp_allocator`，请求结束释放；跨请求状态放 `Server.persist`。
 - 日志只追加、权限 0600，不改写历史行。

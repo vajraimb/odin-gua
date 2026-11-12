@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- 经文入库（0.2.0）：卦辞、爻辞、用九/用六共 450 条，中文通行本繁体 + Legge (1882) 英译；`cast`/`relations` 取辞附原文（`text_zh`/`text_en`），`lookup` 附卦辞，`hexagram://n` 含全部经文。
+- 编译期校验：`#load` 零拷贝嵌入，`#load_hash` 封印，约 1800 条 `#assert` 核对偏移、爻题与卦画；`tools/gen_texts.py` 生成。
+- 日志条目与 `--version` 带经文指纹 `texts`，复盘时可知当时所用版本。
+- 来源与校勘：`data/SOURCES.md`、`data/provenance.tsv`。
 - 仓库公开；MIT 许可证。
 - 英文 README（`README.en.md`），中英互链。
 - `curl ... | bash` 一行安装，不依赖 gh。

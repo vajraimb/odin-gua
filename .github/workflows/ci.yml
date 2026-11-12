@@ -22,6 +22,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/odin" && tar xzf odin.tgz -C "$RUNNER_TEMP/odin" --strip-components=1
           echo "$RUNNER_TEMP/odin" >> "$GITHUB_PATH"
       - run: odin version && clang --version | head -1
+      - name: Generated texts are up to date
+        run: python3 tools/gen_texts.py && git diff --exit-code src/gua/texts_gen.odin
       - name: Build and test
         run: ./build.sh test
       - name: install.sh (dry-run + real, isolated HOME)
