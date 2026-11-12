@@ -33,3 +33,11 @@ jobs:
           "$HOME/.gua/bin/odin-gua" --version
           ./install.sh --uninstall --clients none
           test ! -e "$HOME/.gua/bin/odin-gua"
+      - name: install.sh downloads toolchain when odin is absent
+        run: |
+          export HOME="$RUNNER_TEMP/home2" && mkdir -p "$HOME"
+          export PATH="$(echo "$PATH" | tr ':' '\n' | grep -v "$RUNNER_TEMP/odin" | paste -s -d: -)"
+          ! command -v odin
+          ./install.sh --clients none
+          test -x "$HOME/.gua/toolchain/odin-dev-2026-07/odin"
+          "$HOME/.gua/bin/odin-gua" --self-test

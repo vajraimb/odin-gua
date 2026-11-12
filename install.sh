@@ -74,7 +74,7 @@ client_list() {
 # 修改 JSON 配置里的 mcpServers.odin-gua（先备份；需要 python3）
 json_edit() { # $1 文件 $2 add|remove
 	local f="$1" action="$2"
-	have python3 || { warn "没有 python3，无法自动修改 $f；请手动加入：$("$BIN" --print-config 2>/dev/null | tr -d '\n')"; return 0; }
+	have python3 || { warn "没有 python3，无法自动修改 ${f}；请手动加入：$("$BIN" --print-config 2>/dev/null | tr -d '\n')"; return 0; }
 	if [[ $DRY == 1 ]]; then printf '  [dry-run] %s %s → %s\n' "$action" "$NAME" "$f"; return 0; fi
 	if [[ "$action" == remove && ! -f "$f" ]]; then return 0; fi
 	mkdir -p "$(dirname "$f")"
@@ -111,9 +111,9 @@ register() { # $1 客户端
 			run codex mcp add "$NAME" -- "$BIN" ;;
 		cursor)         json_edit "$HOME/.cursor/mcp.json" add ;;
 		claude-desktop) json_edit "$(desktop_config)" add ;;
-		*) warn "不认识的客户端: $1（可选：$ALL_CLIENTS）"; return 0 ;;
+		*) warn "不认识的客户端: $1（可选：${ALL_CLIENTS}）"; return 0 ;;
 	esac
-	REGISTERED+=("$1")
+	REGISTERED="${REGISTERED:+$REGISTERED }$1"
 }
 
 unregister() {
@@ -142,7 +142,7 @@ case "$os_name/$arch" in
 	Linux/aarch64|Linux/arm64) ASSET="odin-linux-arm64-$ODIN_TAG.tar.gz"; SHA="9eb1e6e08a4563484b36fe36ea9d77b49432a4f3d89c30527bcf3c31fc53ab4c" ;;
 	Darwin/arm64)              ASSET="odin-macos-arm64-$ODIN_TAG.tar.gz"; SHA="0712c29beec34eed272c9cf6b62db43c9b37e1f6a5181d04dda7e3e8cb03884c" ;;
 	Darwin/x86_64)             ASSET="odin-macos-amd64-$ODIN_TAG.tar.gz"; SHA="91b9facaeb110e36a71c1e941a8299dd0029c985edf61bedd8ebdc1f3673536e" ;;
-	*) die "不支持的平台 $os_name/$arch；请按 AGENTS.md 手动构建" ;;
+	*) die "不支持的平台 $os_name/${arch}；请按 AGENTS.md 手动构建" ;;
 esac
 
 # 链接器
@@ -157,14 +157,14 @@ sha256() { if have sha256sum; then sha256sum "$1" | cut -d' ' -f1; else shasum -
 ODIN=""
 if have odin && odin version 2>/dev/null | grep -q "2026-07"; then
 	ODIN="$(command -v odin)"
-	say "使用已安装的 Odin：$ODIN（$(odin version)）"
+	say "使用已安装的 Odin：${ODIN}（$(odin version)）"
 else
 	TC="$GUA_HOME/toolchain/odin-$ODIN_TAG"
 	ODIN="$TC/odin"
 	if [[ -x "$ODIN" ]]; then
-		say "使用缓存的 Odin $ODIN_TAG：$TC"
+		say "使用缓存的 Odin ${ODIN_TAG}：$TC"
 	else
-		say "下载 Odin $ODIN_TAG（$ASSET）"
+		say "下载 Odin ${ODIN_TAG}（${ASSET}）"
 		have curl || die "需要 curl"
 		url="https://github.com/odin-lang/Odin/releases/download/$ODIN_TAG/$ASSET"
 		if [[ $DRY == 1 ]]; then
@@ -173,7 +173,7 @@ else
 			tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 			curl -fsSL --retry 3 -o "$tmp/odin.tgz" "$url"
 			got="$(sha256 "$tmp/odin.tgz")"
-			[[ "$got" == "$SHA" ]] || die "Odin 安装包校验失败（期望 $SHA，实际 $got）"
+			[[ "$got" == "$SHA" ]] || die "Odin 安装包校验失败（期望 ${SHA}，实际 ${got}）"
 			mkdir -p "$TC"
 			tar xzf "$tmp/odin.tgz" -C "$TC" --strip-components=1
 			# macOS 上解压的二进制可能带隔离属性
@@ -211,7 +211,7 @@ fi
 
 # ---------- 注册 ----------
 
-REGISTERED=()
+REGISTERED=""
 targets="$(client_list)"
 if [[ -z "$targets" ]]; then
 	if [[ "$CLIENTS" == auto ]]; then warn "没有检测到 MCP 客户端（claude / codex / Cursor / Claude Desktop）"; fi
@@ -221,8 +221,8 @@ fi
 
 echo
 say "安装完成：$BIN"
-if [[ ${#REGISTERED[@]} -gt 0 ]]; then
-	if [[ $DRY == 1 ]]; then echo "    将注册：${REGISTERED[*]}（dry-run，未实际修改）"; else echo "    已注册：${REGISTERED[*]}"; fi
+if [[ -n "$REGISTERED" ]]; then
+	if [[ $DRY == 1 ]]; then echo "    将注册：${REGISTERED}（dry-run，未实际修改）"; else echo "    已注册：${REGISTERED}"; fi
 	echo "    请重启客户端或开一个新会话，然后说：“帮我起一卦，问……”"
 else
 	echo "    未注册任何客户端。手动配置可用："
