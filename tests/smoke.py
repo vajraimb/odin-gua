@@ -67,7 +67,7 @@ check(tai["name_zh"] == "泰" and tai["judgment_zh"] == "小往大來，吉亨�
 check(len(by[10]["result"]["structuredContent"]["entries"]) == 1, "journal 读到 1 条")
 ui = by[11]["result"]["contents"][0]
 check(ui["mimeType"] == "text/html;profile=mcp-app" and "ui/initialize" in ui["text"], "掷钱界面是 MCP App")
-check(ui.get("_meta", {}).get("ui", {}).get("prefersBorder") is True, "界面声明 prefersBorder")
+check(ui.get("_meta", {}).get("ui", {}).get("prefersBorder") is False, "界面不要粗边框")
 
 print("== 新版协议 2026-07-28")
 meta = {"io.modelcontextprotocol/protocolVersion": "2026-07-28",

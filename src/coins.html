@@ -2,103 +2,75 @@
 <html lang="zh-Hans">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>三钱</title>
 <style>
   :root {
     color-scheme: light dark;
-    --ink: var(--color-text-primary, #3a2a18);
-    --muted: var(--color-text-secondary, #7a6550);
-    --line: #8a5a22;
-    --hole: rgba(40, 24, 8, 0.72);
+    --ink: var(--color-text-primary, #2c241c);
+    --muted: var(--color-text-secondary, #8a7b6a);
+    --paper: var(--color-background-primary, transparent);
   }
   [data-theme="dark"] {
-    --ink: var(--color-text-primary, #f3e6d0);
-    --muted: var(--color-text-secondary, #cbb89a);
-    --line: #e0b15a;
-    --hole: rgba(0, 0, 0, 0.72);
+    --ink: var(--color-text-primary, #f3eadc);
+    --muted: var(--color-text-secondary, #cbbba6);
   }
-  html, body { margin: 0; background: var(--color-background-primary, transparent); color: var(--ink); }
-  body { font: 13px/1.4 "Iowan Old Style", Palatino, "Songti SC", "Noto Serif SC", serif; }
-  .wrap { box-sizing: border-box; width: 100%; max-width: 420px; padding: 8px 12px 12px; }
-  .cap { font-size: 14px; letter-spacing: 0.06em; min-height: 1.2em; }
-  .sub { font-size: 11px; color: var(--muted); min-height: 1.2em; margin-top: 2px; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); }
+  body {
+    font: 13px/1.2 "Iowan Old Style", Palatino, "Songti SC", "Noto Serif SC", "WenQuanYi Micro Hei", serif;
+  }
+  .wrap { box-sizing: border-box; width: max-content; max-width: 100%; margin: 0 auto; padding: 1px 2px 4px; }
+  .cap {
+    font-size: 12px; letter-spacing: 0.14em; color: var(--muted);
+    min-height: 1.15em; text-align: center;
+  }
   .stage {
-    height: 112px; margin-top: 4px;
-    display: flex; justify-content: center; align-items: flex-end; gap: 22px;
-    perspective: 560px;
+    height: 36px; margin-top: 1px;
+    display: flex; justify-content: center; align-items: flex-end; gap: 8px;
   }
   .stage[hidden] { display: none; }
-  .slot { width: 72px; height: 104px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
-  .coin { width: 64px; height: 64px; position: relative; transform-style: preserve-3d; }
-  .coin.toss { animation: toss 780ms cubic-bezier(.18, .7, .22, 1) forwards; }
-  @keyframes toss {
-    0%   { transform: translateY(14px) rotateX(10deg) rotateY(0deg); }
-    40%  { transform: translateY(-48px) rotateX(68deg) rotateY(calc(var(--spin) * 0.55)); }
-    100% { transform: translateY(0) rotateX(0deg) rotateY(var(--spin)); }
+  canvas { width: 26px; height: 36px; display: block; }
+  .rows { display: flex; flex-direction: column-reverse; margin-top: 1px; }
+  .row {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    max-height: 0; opacity: 0; overflow: hidden;
+    animation: sprout 340ms cubic-bezier(.16, .84, .28, 1) forwards;
   }
-  .face {
-    position: absolute; inset: 0; border-radius: 50%;
-    backface-visibility: hidden;
-    background:
-      radial-gradient(circle at 50% 50%, transparent 6px, #5c4014 7px, #5c4014 9px, transparent 10px),
-      radial-gradient(circle at 32% 28%, #f8e7c3, #e2c07a 26%, #b6843a 64%, #6e4e16);
-    box-shadow: inset 0 0 0 3px #f3e0b4, inset 0 0 0 5px #8a6428;
+  .row.still { animation: none; max-height: 15px; opacity: 1; }
+  @keyframes sprout {
+    from { max-height: 0; opacity: 0; transform: translateY(-3px); }
+    to { max-height: 15px; opacity: 1; transform: translateY(0); }
   }
-  .face.front { transform: translateZ(4px); }
-  .face.back { transform: rotateY(180deg) translateZ(4px); }
-  .face b {
-    position: absolute; left: 0; right: 0; top: 7px;
-    text-align: center; font-size: 15px; font-weight: 700; color: #4a320c;
-  }
-  .face small {
-    position: absolute; left: 0; right: 0; bottom: 6px;
-    text-align: center; font-size: 10px; color: #5c4014;
-  }
-  .face::after {
+  .ink { width: 7.6em; height: 1.5px; background: var(--ink); position: relative; flex: none; }
+  .ink.yin { background: transparent; display: flex; justify-content: space-between; }
+  .ink.yin i { display: block; width: 43%; height: 1.5px; background: var(--ink); }
+  .ink.old.yang::after {
     content: ""; position: absolute; left: 50%; top: 50%;
-    width: 12px; height: 12px; transform: translate(-50%, -50%);
-    background: var(--hole); box-shadow: 0 0 0 1px #5a3e12;
+    width: 4px; height: 4px; box-sizing: border-box;
+    border: 1px solid var(--ink); border-radius: 50%;
+    background: var(--paper, #f7f1e8);
+    transform: translate(-50%, -50%);
   }
-  .rim {
-    position: absolute; width: 13px; height: 8px; left: 25.5px; top: 28px;
-    background: linear-gradient(#f3deae, #8a6220 48%, #4e3812);
+  .ink.old.yin::after {
+    content: "×"; position: absolute; left: 50%; top: 50%;
+    font-size: 9px; line-height: 1; color: var(--ink);
+    transform: translate(-50%, -58%);
   }
-  .shadow {
-    width: 36px; height: 8px; margin-top: 8px; border-radius: 50%;
-    background: rgba(0, 0, 0, 0.28); filter: blur(0.6px);
-  }
-  .rows { display: flex; flex-direction: column-reverse; gap: 3px; margin-top: 8px; min-height: 18px; }
-  .row { display: flex; align-items: center; gap: 8px; height: 20px; }
-  .faces { display: flex; gap: 3px; width: 60px; flex: none; }
-  .row.noface .faces { display: none; }
-  .mini {
-    width: 18px; height: 18px; border-radius: 50%;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 9px; font-weight: 700; color: #4a320c;
-    background: radial-gradient(circle at 35% 30%, #f8e7c3, #b6843a 72%, #6e4e16);
-    box-shadow: inset 0 0 0 1px #f0d7a2;
-  }
-  .bar { flex: 1; height: 7px; display: flex; justify-content: space-between; }
-  .bar span { display: block; height: 7px; background: var(--line); border-radius: 1px; }
-  .bar.yang span { width: 100%; }
-  .bar.yin span { width: 46%; }
-  .name { width: 92px; flex: none; text-align: right; font-size: 12px; color: var(--muted); }
+  .name { flex: none; white-space: nowrap; font-size: 12px; letter-spacing: 0.04em; color: var(--muted); }
   .name.moving { color: var(--ink); }
   button {
-    margin-top: 8px; border: 1px solid #b9a48a; background: transparent; color: inherit;
-    border-radius: 999px; padding: 3px 12px; font: inherit; cursor: pointer;
+    display: block; margin: 3px auto 0; padding: 0; border: 0; background: none;
+    color: var(--muted); font: inherit; font-size: 12px; letter-spacing: 0.12em;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
   }
   button[hidden] { display: none; }
   @media (prefers-reduced-motion: reduce) {
-    .coin.toss { animation: none; }
+    .row { animation: none; max-height: 15px; opacity: 1; }
   }
 </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="wrap" id="wrap">
     <div class="cap" id="cap">候这一掷</div>
-    <div class="sub" id="sub"></div>
     <div class="stage" id="stage" hidden></div>
     <div class="rows" id="rows"></div>
     <button id="again" type="button" hidden>再看一次</button>
@@ -108,46 +80,138 @@
   "use strict";
   var POS = ["初", "二", "三", "四", "五", "上"];
   var cap = document.getElementById("cap");
-  var sub = document.getElementById("sub");
   var stage = document.getElementById("stage");
   var rows = document.getElementById("rows");
   var again = document.getElementById("again");
   var slots = [];
+  var faces = {};
   var token = 0;
   var last = null;
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var FONT = "'Songti SC', 'Noto Serif SC', 'WenQuanYi Micro Hei', 'Droid Sans Fallback', serif";
 
-  function el(tag, cls, text) {
-    var n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
-    return n;
+  function disc(kind) {
+    var S = 192;
+    var c = document.createElement("canvas");
+    c.width = c.height = S;
+    var g = c.getContext("2d");
+    var cx = S / 2, cy = S / 2, R = S / 2 - 1.5;
+    g.beginPath();
+    g.arc(cx, cy, R, 0, Math.PI * 2);
+    g.clip();
+    var metal = g.createRadialGradient(cx - R * 0.34, cy - R * 0.38, R * 0.04, cx + R * 0.1, cy + R * 0.12, R);
+    metal.addColorStop(0, "#fff6dc");
+    metal.addColorStop(0.22, "#f0d7a0");
+    metal.addColorStop(0.58, kind === 3 ? "#c8923c" : "#b78332");
+    metal.addColorStop(0.84, "#7d5620");
+    metal.addColorStop(1, "#3f2a10");
+    g.fillStyle = metal;
+    g.fillRect(0, 0, S, S);
+    g.save();
+    g.globalAlpha = 0.16;
+    var i;
+    for (i = 10; i < R - 8; i += 2.5) {
+      g.beginPath();
+      g.arc(cx, cy, i, 0, Math.PI * 2);
+      g.strokeStyle = (i % 5 < 2.5) ? "#fff8e8" : "#3a240c";
+      g.lineWidth = 0.7;
+      g.stroke();
+    }
+    g.restore();
+    g.lineWidth = 8;
+    g.strokeStyle = "#f4e4c2";
+    g.beginPath(); g.arc(cx, cy, R - 6, 0, Math.PI * 2); g.stroke();
+    g.lineWidth = 1.4;
+    g.strokeStyle = "#5a3c14";
+    g.beginPath(); g.arc(cx, cy, R - 13, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.arc(cx, cy, R - 17, 0, Math.PI * 2); g.stroke();
+    var hole = 30;
+    g.fillStyle = "rgba(18, 10, 6, 0.94)";
+    g.fillRect(cx - hole / 2, cy - hole / 2, hole, hole);
+    g.strokeStyle = "#edd9ae";
+    g.lineWidth = 1.2;
+    g.strokeRect(cx - hole / 2 + 1.2, cy - hole / 2 + 1.2, hole - 2.4, hole - 2.4);
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.font = "600 48px " + FONT;
+    g.fillStyle = "rgba(255, 246, 220, 0.45)";
+    g.fillText(kind === 3 ? "背" : "字", cx + 0.6, cy - 48);
+    g.fillStyle = "#3a260e";
+    g.fillText(kind === 3 ? "背" : "字", cx, cy - 49);
+    g.font = "500 20px " + FONT;
+    g.fillStyle = "#4e3516";
+    g.fillText(kind === 3 ? "3" : "2", cx, cy + 50);
+    return c;
   }
-  function face(cls, name, n) {
-    var f = el("div", "face " + cls);
-    f.appendChild(el("b", "", name));
-    f.appendChild(el("small", "", n));
-    return f;
+
+  function prepare(canvas) {
+    var dpr = Math.min(3, Math.max(2, window.devicePixelRatio || 2));
+    var cssW = 26, cssH = 36;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas._dpr = dpr;
+    var ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
   }
+
+  function paint(canvas, angle, liftPx) {
+    var dpr = canvas._dpr;
+    var ctx = canvas.getContext("2d");
+    var w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    var a = angle % (Math.PI * 2);
+    if (a < 0) a += Math.PI * 2;
+    var front = a < Math.PI / 2 || a > Math.PI * 1.5;
+    var scale = Math.abs(Math.cos(a));
+    var r = 11 * dpr;
+    var cx = w / 2;
+    var base = h - 4 * dpr - r;
+    var cy = base - liftPx * dpr;
+    var shadowA = 0.22 * (1 - Math.min(liftPx, 8) / 10);
+    ctx.fillStyle = "rgba(40, 24, 8, " + shadowA.toFixed(3) + ")";
+    ctx.beginPath();
+    ctx.ellipse(cx, h - 2.2 * dpr, r * 0.72 * (0.55 + 0.45 * (1 - liftPx / 12)), 1.15 * dpr, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.save();
+    ctx.translate(cx + Math.sin(a) * 1.1 * dpr, cy);
+    ctx.scale(Math.max(scale, 0.045), 1);
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    var edge = ctx.createLinearGradient(-r, 0, r, 0);
+    edge.addColorStop(0, "#4a3010");
+    edge.addColorStop(0.42, "#f6e7c4");
+    edge.addColorStop(0.55, "#a87430");
+    edge.addColorStop(1, "#2e1c0c");
+    ctx.fillStyle = edge;
+    ctx.fill();
+    ctx.restore();
+    if (scale > 0.08) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, 1);
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(front ? faces[2] : faces[3], -r, -r, r * 2, r * 2);
+      ctx.restore();
+    }
+  }
+
   function buildCoins() {
+    faces[2] = disc(2);
+    faces[3] = disc(3);
     stage.textContent = "";
     slots = [];
     for (var i = 0; i < 3; i++) {
-      var slot = el("div", "slot");
-      var coin = el("div", "coin");
-      coin.appendChild(face("front", "字", "2"));
-      coin.appendChild(face("back", "背", "3"));
-      for (var r = 0; r < 16; r++) {
-        var rim = el("i", "rim");
-        rim.style.transform = "rotateY(" + (r * 22.5) + "deg) translateZ(30px)";
-        coin.appendChild(rim);
-      }
-      slot.appendChild(coin);
-      slot.appendChild(el("i", "shadow"));
-      stage.appendChild(slot);
-      slots.push(coin);
+      var canvas = document.createElement("canvas");
+      prepare(canvas);
+      stage.appendChild(canvas);
+      slots.push(canvas);
+      paint(canvas, 0, 0);
     }
   }
+
   function lineName(v, i) {
     var yang = v === 7 || v === 9;
     if (i === 0) return yang ? "初九" : "初六";
@@ -157,32 +221,28 @@
   function kind(v) {
     return {6: "老阴", 7: "少阳", 8: "少阴", 9: "老阳"}[v] || "";
   }
-  function addRow(faces, v, i) {
-    var row = el("div", "row");
+  function addRow(coinFaces, v, i, still) {
+    var row = document.createElement("div");
+    row.className = "row" + (still ? " still" : "");
     row.dataset.value = String(v);
-    if (faces) {
-      for (var k = 0; k < 3; k++) row.dataset["c" + k] = String(faces[k]);
+    if (coinFaces) {
+      for (var k = 0; k < 3; k++) row.dataset["c" + k] = String(coinFaces[k]);
     }
-    var box = el("div", "faces");
-    if (faces) {
-      for (var j = 0; j < 3; j++) {
-        var yang = faces[j] === 3;
-        box.appendChild(el("span", "mini" + (yang ? " yang" : ""), yang ? "背" : "字"));
-      }
-    } else {
-      row.className = "row noface";
+    var yang = v === 7 || v === 9;
+    var bar = document.createElement("div");
+    bar.className = "ink " + (yang ? "yang" : "yin") + ((v === 6 || v === 9) ? " old" : "");
+    if (!yang) {
+      bar.appendChild(document.createElement("i"));
+      bar.appendChild(document.createElement("i"));
     }
-    var bar = el("div", "bar " + ((v === 7 || v === 9) ? "yang" : "yin"));
-    bar.appendChild(el("span"));
-    if (v !== 7 && v !== 9) bar.appendChild(el("span"));
-    var name = el("div", "name", lineName(v, i) + " · " + kind(v));
-    if (v === 6 || v === 9) name.classList.add("moving");
-    row.appendChild(box);
+    var name = document.createElement("div");
+    name.className = "name" + ((v === 6 || v === 9) ? " moving" : "");
+    name.textContent = lineName(v, i) + " " + kind(v);
     row.appendChild(bar);
     row.appendChild(name);
     rows.appendChild(row);
   }
-  function sum(faces) { return faces[0] + faces[1] + faces[2]; }
+  function sum(fs) { return fs[0] + fs[1] + fs[2]; }
   function valuesOf(sc) {
     var s = sc && sc.values != null ? String(sc.values) : "";
     var out = [];
@@ -197,26 +257,28 @@
     }
     return true;
   }
-  function setFace(coin, faceValue, animate, delay, turns) {
-    var deg = (animate ? turns * 360 : 0) + (faceValue === 3 ? 180 : 0);
-    coin.style.animationDelay = animate ? delay + "ms" : "0ms";
-    if (!animate) {
-      coin.classList.remove("toss");
-      coin.style.transform = "rotateY(" + deg + "deg)";
-      return Promise.resolve();
-    }
-    coin.style.transform = "";
-    coin.style.setProperty("--spin", deg + "deg");
-    coin.classList.remove("toss");
-    void coin.offsetWidth;
-    coin.classList.add("toss");
+  function showFace(canvas, faceValue) {
+    paint(canvas, faceValue === 3 ? Math.PI : 0, 0);
+  }
+  function toss(canvas, faceValue, delay, turns, my) {
+    var end = turns * Math.PI * 2 + (faceValue === 3 ? Math.PI : 0);
+    if (reduce) { showFace(canvas, faceValue); return Promise.resolve(); }
     return new Promise(function (resolve) {
-      function done(ev) {
-        if (ev.target !== coin) return;
-        coin.removeEventListener("animationend", done);
-        resolve();
+      var t0 = null;
+      var dur = 620;
+      function frame(now) {
+        if (my !== token) { resolve(); return; }
+        if (t0 == null) t0 = now;
+        var t = (now - t0 - delay) / dur;
+        if (t < 0) { requestAnimationFrame(frame); return; }
+        if (t > 1) t = 1;
+        var s = t * t * (3 - 2 * t);
+        var lift = Math.sin(Math.PI * s) * 9;
+        paint(canvas, end * s, lift);
+        if (t >= 1) { showFace(canvas, faceValue); resolve(); return; }
+        requestAnimationFrame(frame);
       }
-      coin.addEventListener("animationend", done);
+      requestAnimationFrame(frame);
     });
   }
   function play(sc, replay) {
@@ -227,43 +289,38 @@
     again.hidden = true;
     stage.hidden = false;
     rows.textContent = "";
-    cap.textContent = replay ? "再看这一掷" : "三钱";
-    sub.textContent = "2 字为阴，3 背为阳。画面只回放这一次的结果。";
+    cap.textContent = replay ? "再看" : "三钱";
     var i = 0;
     function next() {
       if (my !== token) return;
       if (i >= 6) {
         cap.textContent = "六爻已定";
-        sub.textContent = "台上是上爻。每一行是该爻的三枚钱。";
         again.hidden = false;
         reportSize();
         return;
       }
       cap.textContent = POS[i] + "爻";
       var jobs = [];
-      for (var k = 0; k < 3; k++) {
-        jobs.push(setFace(slots[k], coins[i][k], !reduce, k * 90, 2 + ((i + k) % 3)));
-      }
+      for (var k = 0; k < 3; k++) jobs.push(toss(slots[k], coins[i][k], k * 55, 2 + ((i + k) % 3), my));
       Promise.all(jobs).then(function () {
         if (my !== token) return;
-        addRow(coins[i], values[i] || sum(coins[i]), i);
+        addRow(coins[i], values[i] || sum(coins[i]), i, false);
         i += 1;
         reportSize();
-        setTimeout(next, reduce ? 0 : 200);
+        setTimeout(next, reduce ? 0 : 90);
       });
     }
     next();
   }
-  function showLines(values) {
+  function showLines(values, still) {
     rows.textContent = "";
-    for (var i = 0; i < values.length; i++) addRow(null, values[i], i);
+    for (var i = 0; i < values.length; i++) addRow(null, values[i], i, still);
   }
   function show(result) {
     if (!result || result.isError) {
       token += 1;
       var msg = textOf(result);
       cap.textContent = msg ? msg.split("\n")[0] : "没有卦象";
-      sub.textContent = "";
       stage.hidden = true;
       again.hidden = true;
       rows.textContent = "";
@@ -276,9 +333,8 @@
       last = null;
       stage.hidden = true;
       again.hidden = true;
-      cap.textContent = sc.method === "yarrow" ? "大衍筮法" : (sc.duplicate_of ? "初筮告，不再重摇" : "六爻");
-      sub.textContent = sc.method === "yarrow" ? "此法不抛铜钱，只显示算得的六爻。" : "这次没有记下每一枚钱的正反。";
-      showLines(valuesOf(sc));
+      cap.textContent = sc.method === "yarrow" ? "大衍" : (sc.duplicate_of ? "初筮" : "六爻");
+      showLines(valuesOf(sc), true);
       reportSize();
       return;
     }
@@ -289,10 +345,9 @@
       rows.textContent = "";
       var coins = sc.coins;
       var values = valuesOf(sc);
-      for (var i = 0; i < 6; i++) addRow(coins[i], values[i] || sum(coins[i]), i);
-      for (var k = 0; k < 3; k++) setFace(slots[k], coins[5][k], false, 0, 0);
-      cap.textContent = sc.duplicate_of ? "初筮告，不再重摇" : "六爻已定";
-      sub.textContent = "台上是上爻。钱面是这一次算出来的，不是新的一掷。";
+      for (var i = 0; i < 6; i++) addRow(coins[i], values[i] || sum(coins[i]), i, true);
+      for (var k = 0; k < 3; k++) showFace(slots[k], coins[5][k]);
+      cap.textContent = sc.duplicate_of ? "初筮" : "六爻已定";
       again.hidden = false;
       reportSize();
       return;
@@ -317,9 +372,10 @@
   function notify(method, params) { send({jsonrpc: "2.0", method: method, params: params || {}}); }
   function reportSize() {
     if (window.parent === window) return;
+    var box = document.getElementById("wrap").getBoundingClientRect();
     notify("ui/notifications/size-changed", {
-      width: Math.ceil(document.body.getBoundingClientRect().width),
-      height: Math.ceil(document.body.scrollHeight)
+      width: Math.ceil(box.width),
+      height: Math.ceil(box.height)
     });
   }
   function applyTheme(ctx) {
@@ -373,7 +429,7 @@
       method: "ui/initialize",
       params: {
         protocolVersion: "2026-01-26",
-        appInfo: {name: "odin-gua", version: "0.4.0"},
+        appInfo: {name: "odin-gua", version: "0.4.1"},
         appCapabilities: {availableDisplayModes: ["inline"]}
       }
     });
@@ -400,7 +456,7 @@
   } else {
     handshake();
   }
-  if (window.ResizeObserver) new ResizeObserver(function () { reportSize(); }).observe(document.body);
+  if (window.ResizeObserver) new ResizeObserver(function () { reportSize(); }).observe(document.getElementById("wrap"));
 })();
   </script>
 </body>

@@ -98,7 +98,7 @@ The journal is written on the machine that runs the server.
 | `review` | planned | Record what actually happened |
 | `report` | planned | Hit rate, Brier calibration, placebo comparison, judge commentary |
 
-Resources: `hexagram://1` … `hexagram://64` (template `hexagram://{number}`). `ui://odin-gua/coins` is the coin replay (MCP Apps). It plays back the recorded faces and does not roll again; the yarrow method shows the six lines only. Hosts without that extension still get the text result.
+Resources: `hexagram://1` … `hexagram://64` (template `hexagram://{number}`). `ui://odin-gua/coins` is the coin replay (MCP Apps): three coins about one line high, then the six lines grow out beneath them. It plays back the recorded faces and does not roll again; the yarrow method shows the six lines only. Hosts without that extension still get the text result.
 
 ## Rules
 

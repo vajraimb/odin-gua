@@ -21,6 +21,7 @@ NOTES :: [?]Note{
 	{"0.3.0", "新增 annotate：讲完解读立刻记下 stance、confidence（0–1）、prediction（将来能对照检验的一句话）与 review_after/review_in_days，每卦一次、写下不改。到期卦例会以“复盘提醒”附在 cast/journal 结果里，请在回答末尾顺便问用户结果。同一问题 72 小时内服务器不重摇、返回原卦；只有用户明确说情况变了，才带 recast:true 与 reason。"},
 	{"0.3.1", "新增本更新通告：版本变化后的第一次调用会附上各版要点。"},
 	{"0.4.0", "三钱法会记下每一枚钱的正反：structuredContent.coins 为六爻、每爻三枚，2 是阴（字）、3 是阳（背），自初爻到上爻，三者之和即 values。支持 MCP Apps 的客户端在工具卡片播放这次的 3D 回放；钱面以 coins 为准，不要另编，也不要在解卦正文里插入动图。大衍法没有硬币。同一问题返回原卦时 animate 为 false，是初筮的钱面，不是新的一掷。"},
+	{"0.4.1", "掷钱回放改成一行字那么高：三枚钱细细掷过，六爻从这一行下面逐条长出。仍在工具卡片里，不在解卦正文中。钱面仍以 coins 为准，不要另编，也不要自己插入动图。"},
 }
 
 #assert(NOTES[len(NOTES) - 1].version == VERSION, "改了 VERSION 要在 NOTES 末尾补一条更新通告")
