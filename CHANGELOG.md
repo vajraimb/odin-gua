@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `--http [端口]`：Streamable HTTP 传输（只听 127.0.0.1，POST 回 JSON，GET 405）；令牌取 `GUA_HTTP_TOKEN`，放路径 `/mcp/<token>` 或 `Authorization: Bearer`。供 Perplexity 等只接远程 MCP 的客户端经隧道/反代使用。
 - 经文入库（0.2.0）：卦辞、爻辞、用九/用六共 450 条，中文通行本繁体 + Legge (1882) 英译；`cast`/`relations` 取辞附原文（`text_zh`/`text_en`），`lookup` 附卦辞，`hexagram://n` 含全部经文。
 - 编译期校验：`#load` 零拷贝嵌入，`#load_hash` 封印，约 1800 条 `#assert` 核对偏移、爻题与卦画；`tools/gen_texts.py` 生成。
 - 日志条目与 `--version` 带经文指纹 `texts`，复盘时可知当时所用版本。

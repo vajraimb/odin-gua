@@ -85,5 +85,27 @@ now = _dt.datetime.now(_dt.timezone.utc)
 check(abs((now - ts).total_seconds()) < 60 and ts.utcoffset().total_seconds() == 8 * 3600, f"时间戳为正确的当地时间: {sc['ts']}")
 mode = oct(os.stat(os.path.join(home, "journal.jsonl")).st_mode & 0o777)
 check(mode == "0o600", f"日志权限 {mode}")
+print("== Streamable HTTP（--http）")
+import socket, time, urllib.request, urllib.error
+sk = socket.socket(); sk.bind(("127.0.0.1", 0)); port = sk.getsockname()[1]; sk.close()
+henv = dict(os.environ, GUA_HOME=home, GUA_HTTP_TOKEN="t0ken", TZ="Asia/Shanghai")
+hp = subprocess.Popen([BIN, "--http", str(port)], env=henv, stderr=subprocess.DEVNULL)
+def post(path, body, hdr=None):
+    rq = urllib.request.Request(f"http://127.0.0.1:{port}{path}", data=json.dumps(body).encode(), headers=hdr or {}, method="POST")
+    try:
+        with urllib.request.urlopen(rq, timeout=5) as r: return r.status, r.read().decode()
+    except urllib.error.HTTPError as e: return e.code, e.read().decode()
+for _ in range(50):
+    try: urllib.request.urlopen(f"http://127.0.0.1:{port}/healthz", timeout=1); break
+    except Exception: time.sleep(0.1)
+try:
+    check(post("/mcp", {})[0] == 401, "无令牌 401")
+    st, b = post("/mcp/t0ken", {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "smoke-http", "version": "1"}}})
+    check(st == 200 and json.loads(b)["result"]["protocolVersion"] == "2025-06-18", "路径令牌 initialize")
+    check(post("/mcp/t0ken", {"jsonrpc": "2.0", "method": "notifications/initialized"})[0] == 202, "通知 202")
+    st, b = post("/mcp", {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "relations", "arguments": {"query": "乾", "moving": [1]}}}, {"Authorization": "Bearer t0ken"})
+    check(st == 200 and "潛龍" in b, "Bearer 令牌 relations 带原文")
+finally:
+    hp.terminate(); hp.wait()
 print("通过" if fails == 0 else f"{fails} 项失败")
 sys.exit(1 if fails else 0)

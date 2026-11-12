@@ -79,6 +79,15 @@ main :: proc() {
 		fmt.println("自检通过")
 	case "--print-config":
 		print_config()
+	case "--http":
+		// 远程客户端（如 Perplexity 自定义连接器）用：只监听 127.0.0.1，由隧道或反代提供 HTTPS
+		port := 8765
+		if len(os.args) > 2 {
+			if p, ok := strconv.parse_int(os.args[2]); ok { port = p }
+		}
+		token := os.get_env("GUA_HTTP_TOKEN", context.allocator)
+		if token == "" { fmt.eprintln("警告：未设 GUA_HTTP_TOKEN，任何能访问端口的人都能调用") }
+		if !mcp.serve_http(&s, port, token) { os.exit(1) }
 	case:
 		fmt.println(USAGE)
 		if arg != "-h" && arg != "--help" { os.exit(2) }
@@ -91,6 +100,7 @@ USAGE :: `odin-gua — 易经起卦 MCP 服务器（stdio）
   odin-gua                 以 MCP stdio 服务器运行（由客户端启动）
   odin-gua --self-test     进程内自检（不写用户日志）
   odin-gua --print-config  打印客户端配置 JSON
+  odin-gua --http [端口]   以 Streamable HTTP 运行（127.0.0.1，默认 8765；令牌取 GUA_HTTP_TOKEN）
   odin-gua --version`
 
 // ---------- 卦的 JSON ----------

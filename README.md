@@ -52,6 +52,17 @@ curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh |
 
 请求 `_meta` 里带 `io.modelcontextprotocol/protocolVersion` 就按新版回复，否则按旧版。已用 MCP Inspector 2.14.0 CLI 验证。
 
+## 远程客户端
+
+只接受 HTTPS 远程 MCP 的客户端（如 Perplexity 自定义连接器）可用 HTTP 模式，再由隧道或反向代理提供 HTTPS：
+
+```sh
+GUA_HTTP_TOKEN=$(openssl rand -hex 16) odin-gua --http 8765   # 只监听 127.0.0.1
+# 连接器 URL：https://<你的域名>/mcp/<令牌>，认证选 None，传输选 Streamable HTTP
+```
+
+日志写在运行服务的那台机器上。
+
 ## 设计原则
 
 - **排卦归程序，解卦归模型。** 随机数、互错综变、取哪条爻辞都由代码确定并可复现；模型只负责联系问题去解释。

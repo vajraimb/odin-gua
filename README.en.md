@@ -52,6 +52,17 @@ Both MCP generations are supported:
 
 A request whose `_meta` contains `io.modelcontextprotocol/protocolVersion` gets a modern reply; otherwise legacy. Verified with the MCP Inspector 2.14.0 CLI.
 
+## Remote clients
+
+Clients that only accept remote HTTPS MCP servers (such as Perplexity custom connectors) can use HTTP mode behind a tunnel or reverse proxy:
+
+```sh
+GUA_HTTP_TOKEN=$(openssl rand -hex 16) odin-gua --http 8765   # listens on 127.0.0.1 only
+# connector URL: https://<your-host>/mcp/<token>, auth None, transport Streamable HTTP
+```
+
+The journal is written on the machine that runs the server.
+
 ## Design
 
 - **Code casts, the model interprets.** Randomness, derived hexagrams and which line to read are decided by code and reproducible from a seed; the model only relates them to your question.
