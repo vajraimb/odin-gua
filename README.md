@@ -32,7 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh |
 | 参数 | 作用 |
 |---|---|
 | （无） | 以 stdio MCP 服务器运行 |
-| `--self-test` | 进程内跑 8 项协议与工具自检（用临时目录，不写用户日志） |
+| `--self-test` | 进程内跑 9 项协议与工具自检（用临时目录，不写用户日志） |
 | `--print-config` | 打印本二进制的 `mcpServers` 配置片段 |
 | `--version` / `--help` | 版本 / 用法 |
 
@@ -89,7 +89,7 @@ GUA_HTTP_TOKEN=$(openssl rand -hex 16) odin-gua --http 8765   # 只监听 127.0.
 
 | 工具 | 状态 | 作用 |
 |---|---|---|
-| `cast` | ✅ 0.1 | 起卦（三钱法/大衍法概率），必须带 `question`；返回本卦、动爻、之卦、互卦、取辞及中英原文，自动记日志 |
+| `cast` | ✅ 0.4 | 起卦（三钱法/大衍法概率），必须带 `question`；返回本卦、动爻、之卦、互卦、取辞及中英原文，自动记日志。三钱法另记每一枚钱的正反，支持 MCP Apps 的客户端在工具卡片回放这一掷 |
 | `lookup` | ✅ 0.1 | 按序号、中文名、拼音、英文名、Unicode 卦符、六位二进制查卦；附卦辞 |
 | `relations` | ✅ 0.1 | 互、错、综；给动爻时再给之卦与取辞 |
 | `journal` | ✅ 0.1 | 最近的起卦记录及状态（待解读/待复盘/已到复盘日/渎）；`due:true` 只看到期的 |
@@ -97,7 +97,7 @@ GUA_HTTP_TOKEN=$(openssl rand -hex 16) odin-gua --http 8765   # 只监听 127.0.
 | `review` | 计划 | 记录事后结果 |
 | `report` | 计划 | 命中率、Brier 校准、安慰剂对照、评委点评 |
 
-资源：`hexagram://1` … `hexagram://64`（模板 `hexagram://{number}`），含卦辞、六爻爻辞与用九/用六，中英对照。
+资源：`hexagram://1` … `hexagram://64`（模板 `hexagram://{number}`），含卦辞、六爻爻辞与用九/用六，中英对照。`ui://odin-gua/coins` 是掷钱回放（MCP Apps，`text/html;profile=mcp-app`）：只重现 `coins` 里已经算好的正反面，不在页面里另摇；大衍法只显示六爻。终端等不支持该扩展的客户端仍只看文本。
 
 ## 规则
 

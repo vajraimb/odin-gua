@@ -56,7 +56,23 @@ test_seed_reproducible :: proc(t: ^testing.T) {
 	a := cast_with_seed(42, .Coins)
 	b := cast_with_seed(42, .Coins)
 	testing.expect_value(t, a.values, b.values)
+	testing.expect_value(t, a.coins, b.coins)
 	for v in a.values { testing.expect(t, v >= 6 && v <= 9) }
+	testing.expect_value(t, len(coins_string(a)), 18)
+	for i in 0 ..< 6 {
+		s := 0
+		for k in 0 ..< 3 {
+			f := a.coins[i][k]
+			testing.expect(t, f == 2 || f == 3)
+			s += int(f)
+		}
+		testing.expect_value(t, a.values[i], u8(s))
+	}
+	y := cast_with_seed(42, .Yarrow)
+	testing.expect_value(t, coins_string(y), "")
+	for row in y.coins {
+		for f in row { testing.expect_value(t, f, 0) }
+	}
 }
 
 @(test)

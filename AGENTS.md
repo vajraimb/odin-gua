@@ -18,7 +18,7 @@
 
 1. 找 Odin `dev-2026-07`：PATH 里有且版本匹配就用；否则下载官方 release 到 `~/.gua/toolchain/odin-dev-2026-07`，并用脚本内固定的 SHA256 校验。
 2. 编译到 `~/.gua/bin/odin-gua`（`-o:speed -vet -strict-style`）。
-3. 运行 `odin-gua --self-test`（8 项，进程内跑，不写用户日志）。
+3. 运行 `odin-gua --self-test`（9 项，进程内跑，不写用户日志）。
 4. 注册到检测到的 MCP 客户端：
 
 | 客户端 | 检测条件 | 注册方式 |
@@ -107,6 +107,7 @@ odin build src -out:%USERPROFILE%\.gua\bin\odin-gua.exe -o:speed
 - 解读以返回的 `reading`（朱熹取辞规则：读哪条卦辞或爻辞）为主线，结合本卦、之卦、互卦与问题；先给倾向，再给理由。
 - `reading.focus[].text_zh` / `text_en` 是原文（通行本 / Legge 1882），引用时照录，不要凭记忆改写经文。
 - 提醒用户：仅供自我反思，不构成任何决策（包括投资）依据。
+- 三钱法的 `coins` 是服务器算好的钱面（2 阴 / 3 阳，自初爻到上爻）。支持 MCP Apps 的客户端会在工具卡片里播放 3D 回放；不要另编正反面，也不要在解卦正文里插入动图。大衍法没有硬币。返回原卦时不要当成新的一掷。
 - 查卦用 `lookup`，看互错综变用 `relations`，回看历史用 `journal`。
 
 ## 开发

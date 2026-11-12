@@ -35,6 +35,7 @@ Call :: struct {
 Tool :: struct {
 	name, title, description, input_schema: string,
 	read_only:                               bool,
+	ui:                                      string, // MCP App 的 ui:// 资源；空则无界面
 	handler:                                 proc(c: ^Call) -> Tool_Result,
 }
 
@@ -47,7 +48,7 @@ Server :: struct {
 	tools:                       [dynamic]Tool,
 	// 资源：list 返回全部；read 由回调生成内容（"" 表示不存在）
 	list_resources:              proc() -> []Resource,
-	read_resource:               proc(uri: string) -> (text: string, mime: string, ok: bool),
+	read_resource:               proc(uri: string) -> (text: string, mime: string, meta: string, ok: bool),
 	resource_templates:          []Resource,
 	legacy_version:              string, // 旧版握手后选定的版本
 	client_name:                 string,
@@ -182,12 +183,12 @@ handle :: proc(s: ^Server, line: string) -> (out: string, has_reply: bool) {
 		cacheable, ttl = true, 86400_000
 	case "resources/read":
 		uri, _ := params["uri"].(json.String)
-		text, mime, ok := "", "", false
-		if s.read_resource != nil { text, mime, ok = s.read_resource(uri) }
+		text, mime, meta, ok := "", "", "", false
+		if s.read_resource != nil { text, mime, meta, ok = s.read_resource(uri) }
 		if !ok {
 			code, emsg = ERR_PARAMS, fmt.tprintf("Resource not found: %s", uri)
 		} else {
-			result = obj({"contents", arr({obj({"uri", q(uri)}, {"mimeType", q(mime)}, {"text", q(text)})})})
+			result = obj({"contents", arr({obj({"uri", q(uri)}, {"mimeType", q(mime)}, {"text", q(text)}, {"_meta", meta})})})
 			cacheable, ttl = true, 86400_000
 		}
 	case "prompts/list":
@@ -239,12 +240,15 @@ server_info :: proc(s: ^Server) -> string {
 
 @(private)
 tool_json :: proc(t: Tool) -> string {
+	ui := ""
+	if t.ui != "" { ui = obj({"ui", obj({"resourceUri", q(t.ui)})}) }
 	return obj(
 		{"name", q(t.name)},
 		{"title", q(t.title)},
 		{"description", q(t.description)},
 		{"inputSchema", t.input_schema},
 		{"annotations", obj({"title", q(t.title)}, {"readOnlyHint", boolean(t.read_only)}, {"openWorldHint", "false"})},
+		{"_meta", ui},
 	)
 }
 

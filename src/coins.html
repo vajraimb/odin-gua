@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>三钱</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --ink: var(--color-text-primary, #3a2a18);
+    --muted: var(--color-text-secondary, #7a6550);
+    --line: #8a5a22;
+    --hole: rgba(40, 24, 8, 0.72);
+  }
+  [data-theme="dark"] {
+    --ink: var(--color-text-primary, #f3e6d0);
+    --muted: var(--color-text-secondary, #cbb89a);
+    --line: #e0b15a;
+    --hole: rgba(0, 0, 0, 0.72);
+  }
+  html, body { margin: 0; background: var(--color-background-primary, transparent); color: var(--ink); }
+  body { font: 13px/1.4 "Iowan Old Style", Palatino, "Songti SC", "Noto Serif SC", serif; }
+  .wrap { box-sizing: border-box; width: 100%; max-width: 420px; padding: 8px 12px 12px; }
+  .cap { font-size: 14px; letter-spacing: 0.06em; min-height: 1.2em; }
+  .sub { font-size: 11px; color: var(--muted); min-height: 1.2em; margin-top: 2px; }
+  .stage {
+    height: 112px; margin-top: 4px;
+    display: flex; justify-content: center; align-items: flex-end; gap: 22px;
+    perspective: 560px;
+  }
+  .stage[hidden] { display: none; }
+  .slot { width: 72px; height: 104px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+  .coin { width: 64px; height: 64px; position: relative; transform-style: preserve-3d; }
+  .coin.toss { animation: toss 780ms cubic-bezier(.18, .7, .22, 1) forwards; }
+  @keyframes toss {
+    0%   { transform: translateY(14px) rotateX(10deg) rotateY(0deg); }
+    40%  { transform: translateY(-48px) rotateX(68deg) rotateY(calc(var(--spin) * 0.55)); }
+    100% { transform: translateY(0) rotateX(0deg) rotateY(var(--spin)); }
+  }
+  .face {
+    position: absolute; inset: 0; border-radius: 50%;
+    backface-visibility: hidden;
+    background:
+      radial-gradient(circle at 50% 50%, transparent 6px, #5c4014 7px, #5c4014 9px, transparent 10px),
+      radial-gradient(circle at 32% 28%, #f8e7c3, #e2c07a 26%, #b6843a 64%, #6e4e16);
+    box-shadow: inset 0 0 0 3px #f3e0b4, inset 0 0 0 5px #8a6428;
+  }
+  .face.front { transform: translateZ(4px); }
+  .face.back { transform: rotateY(180deg) translateZ(4px); }
+  .face b {
+    position: absolute; left: 0; right: 0; top: 7px;
+    text-align: center; font-size: 15px; font-weight: 700; color: #4a320c;
+  }
+  .face small {
+    position: absolute; left: 0; right: 0; bottom: 6px;
+    text-align: center; font-size: 10px; color: #5c4014;
+  }
+  .face::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 12px; height: 12px; transform: translate(-50%, -50%);
+    background: var(--hole); box-shadow: 0 0 0 1px #5a3e12;
+  }
+  .rim {
+    position: absolute; width: 13px; height: 8px; left: 25.5px; top: 28px;
+    background: linear-gradient(#f3deae, #8a6220 48%, #4e3812);
+  }
+  .shadow {
+    width: 36px; height: 8px; margin-top: 8px; border-radius: 50%;
+    background: rgba(0, 0, 0, 0.28); filter: blur(0.6px);
+  }
+  .rows { display: flex; flex-direction: column-reverse; gap: 3px; margin-top: 8px; min-height: 18px; }
+  .row { display: flex; align-items: center; gap: 8px; height: 20px; }
+  .faces { display: flex; gap: 3px; width: 60px; flex: none; }
+  .row.noface .faces { display: none; }
+  .mini {
+    width: 18px; height: 18px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: #4a320c;
+    background: radial-gradient(circle at 35% 30%, #f8e7c3, #b6843a 72%, #6e4e16);
+    box-shadow: inset 0 0 0 1px #f0d7a2;
+  }
+  .bar { flex: 1; height: 7px; display: flex; justify-content: space-between; }
+  .bar span { display: block; height: 7px; background: var(--line); border-radius: 1px; }
+  .bar.yang span { width: 100%; }
+  .bar.yin span { width: 46%; }
+  .name { width: 92px; flex: none; text-align: right; font-size: 12px; color: var(--muted); }
+  .name.moving { color: var(--ink); }
+  button {
+    margin-top: 8px; border: 1px solid #b9a48a; background: transparent; color: inherit;
+    border-radius: 999px; padding: 3px 12px; font: inherit; cursor: pointer;
+  }
+  button[hidden] { display: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .coin.toss { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="cap" id="cap">候这一掷</div>
+    <div class="sub" id="sub"></div>
+    <div class="stage" id="stage" hidden></div>
+    <div class="rows" id="rows"></div>
+    <button id="again" type="button" hidden>再看一次</button>
+  </div>
+  <script>
+(function () {
+  "use strict";
+  var POS = ["初", "二", "三", "四", "五", "上"];
+  var cap = document.getElementById("cap");
+  var sub = document.getElementById("sub");
+  var stage = document.getElementById("stage");
+  var rows = document.getElementById("rows");
+  var again = document.getElementById("again");
+  var slots = [];
+  var token = 0;
+  var last = null;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function face(cls, name, n) {
+    var f = el("div", "face " + cls);
+    f.appendChild(el("b", "", name));
+    f.appendChild(el("small", "", n));
+    return f;
+  }
+  function buildCoins() {
+    stage.textContent = "";
+    slots = [];
+    for (var i = 0; i < 3; i++) {
+      var slot = el("div", "slot");
+      var coin = el("div", "coin");
+      coin.appendChild(face("front", "字", "2"));
+      coin.appendChild(face("back", "背", "3"));
+      for (var r = 0; r < 16; r++) {
+        var rim = el("i", "rim");
+        rim.style.transform = "rotateY(" + (r * 22.5) + "deg) translateZ(30px)";
+        coin.appendChild(rim);
+      }
+      slot.appendChild(coin);
+      slot.appendChild(el("i", "shadow"));
+      stage.appendChild(slot);
+      slots.push(coin);
+    }
+  }
+  function lineName(v, i) {
+    var yang = v === 7 || v === 9;
+    if (i === 0) return yang ? "初九" : "初六";
+    if (i === 5) return yang ? "上九" : "上六";
+    return (yang ? "九" : "六") + POS[i];
+  }
+  function kind(v) {
+    return {6: "老阴", 7: "少阳", 8: "少阴", 9: "老阳"}[v] || "";
+  }
+  function addRow(faces, v, i) {
+    var row = el("div", "row");
+    row.dataset.value = String(v);
+    if (faces) {
+      for (var k = 0; k < 3; k++) row.dataset["c" + k] = String(faces[k]);
+    }
+    var box = el("div", "faces");
+    if (faces) {
+      for (var j = 0; j < 3; j++) {
+        var yang = faces[j] === 3;
+        box.appendChild(el("span", "mini" + (yang ? " yang" : ""), yang ? "背" : "字"));
+      }
+    } else {
+      row.className = "row noface";
+    }
+    var bar = el("div", "bar " + ((v === 7 || v === 9) ? "yang" : "yin"));
+    bar.appendChild(el("span"));
+    if (v !== 7 && v !== 9) bar.appendChild(el("span"));
+    var name = el("div", "name", lineName(v, i) + " · " + kind(v));
+    if (v === 6 || v === 9) name.classList.add("moving");
+    row.appendChild(box);
+    row.appendChild(bar);
+    row.appendChild(name);
+    rows.appendChild(row);
+  }
+  function sum(faces) { return faces[0] + faces[1] + faces[2]; }
+  function valuesOf(sc) {
+    var s = sc && sc.values != null ? String(sc.values) : "";
+    var out = [];
+    for (var i = 0; i < s.length && i < 6; i++) out.push(Number(s.charAt(i)));
+    return out;
+  }
+  function validCoins(coins) {
+    if (!coins || coins.length !== 6) return false;
+    for (var i = 0; i < 6; i++) {
+      if (!coins[i] || coins[i].length !== 3) return false;
+      for (var k = 0; k < 3; k++) if (coins[i][k] !== 2 && coins[i][k] !== 3) return false;
+    }
+    return true;
+  }
+  function setFace(coin, faceValue, animate, delay, turns) {
+    var deg = (animate ? turns * 360 : 0) + (faceValue === 3 ? 180 : 0);
+    coin.style.animationDelay = animate ? delay + "ms" : "0ms";
+    if (!animate) {
+      coin.classList.remove("toss");
+      coin.style.transform = "rotateY(" + deg + "deg)";
+      return Promise.resolve();
+    }
+    coin.style.transform = "";
+    coin.style.setProperty("--spin", deg + "deg");
+    coin.classList.remove("toss");
+    void coin.offsetWidth;
+    coin.classList.add("toss");
+    return new Promise(function (resolve) {
+      function done(ev) {
+        if (ev.target !== coin) return;
+        coin.removeEventListener("animationend", done);
+        resolve();
+      }
+      coin.addEventListener("animationend", done);
+    });
+  }
+  function play(sc, replay) {
+    var my = ++token;
+    var coins = sc.coins;
+    var values = valuesOf(sc);
+    last = sc;
+    again.hidden = true;
+    stage.hidden = false;
+    rows.textContent = "";
+    cap.textContent = replay ? "再看这一掷" : "三钱";
+    sub.textContent = "2 字为阴，3 背为阳。画面只回放这一次的结果。";
+    var i = 0;
+    function next() {
+      if (my !== token) return;
+      if (i >= 6) {
+        cap.textContent = "六爻已定";
+        sub.textContent = "台上是上爻。每一行是该爻的三枚钱。";
+        again.hidden = false;
+        reportSize();
+        return;
+      }
+      cap.textContent = POS[i] + "爻";
+      var jobs = [];
+      for (var k = 0; k < 3; k++) {
+        jobs.push(setFace(slots[k], coins[i][k], !reduce, k * 90, 2 + ((i + k) % 3)));
+      }
+      Promise.all(jobs).then(function () {
+        if (my !== token) return;
+        addRow(coins[i], values[i] || sum(coins[i]), i);
+        i += 1;
+        reportSize();
+        setTimeout(next, reduce ? 0 : 200);
+      });
+    }
+    next();
+  }
+  function showLines(values) {
+    rows.textContent = "";
+    for (var i = 0; i < values.length; i++) addRow(null, values[i], i);
+  }
+  function show(result) {
+    if (!result || result.isError) {
+      token += 1;
+      var msg = textOf(result);
+      cap.textContent = msg ? msg.split("\n")[0] : "没有卦象";
+      sub.textContent = "";
+      stage.hidden = true;
+      again.hidden = true;
+      rows.textContent = "";
+      reportSize();
+      return;
+    }
+    var sc = result.structuredContent || {};
+    if (!validCoins(sc.coins)) {
+      token += 1;
+      last = null;
+      stage.hidden = true;
+      again.hidden = true;
+      cap.textContent = sc.method === "yarrow" ? "大衍筮法" : (sc.duplicate_of ? "初筮告，不再重摇" : "六爻");
+      sub.textContent = sc.method === "yarrow" ? "此法不抛铜钱，只显示算得的六爻。" : "这次没有记下每一枚钱的正反。";
+      showLines(valuesOf(sc));
+      reportSize();
+      return;
+    }
+    if (sc.animate === false || reduce) {
+      token += 1;
+      last = sc;
+      stage.hidden = false;
+      rows.textContent = "";
+      var coins = sc.coins;
+      var values = valuesOf(sc);
+      for (var i = 0; i < 6; i++) addRow(coins[i], values[i] || sum(coins[i]), i);
+      for (var k = 0; k < 3; k++) setFace(slots[k], coins[5][k], false, 0, 0);
+      cap.textContent = sc.duplicate_of ? "初筮告，不再重摇" : "六爻已定";
+      sub.textContent = "台上是上爻。钱面是这一次算出来的，不是新的一掷。";
+      again.hidden = false;
+      reportSize();
+      return;
+    }
+    play(sc, false);
+  }
+  again.addEventListener("click", function () {
+    if (last && validCoins(last.coins)) play(last, true);
+  });
+  function textOf(result) {
+    var c = result && result.content;
+    if (!c) return "";
+    for (var i = 0; i < c.length; i++) if (c[i] && c[i].type === "text" && c[i].text) return c[i].text;
+    return "";
+  }
+
+  var seq = 0;
+  var pending = {};
+  var ready = false;
+  var queued = null;
+  function send(msg) { window.parent.postMessage(msg, "*"); }
+  function notify(method, params) { send({jsonrpc: "2.0", method: method, params: params || {}}); }
+  function reportSize() {
+    if (window.parent === window) return;
+    notify("ui/notifications/size-changed", {
+      width: Math.ceil(document.body.getBoundingClientRect().width),
+      height: Math.ceil(document.body.scrollHeight)
+    });
+  }
+  function applyTheme(ctx) {
+    if (!ctx) return;
+    var vars = ctx.styles && ctx.styles.variables;
+    if (vars) {
+      Object.keys(vars).forEach(function (key) {
+        if (vars[key]) document.documentElement.style.setProperty(key, vars[key]);
+      });
+    }
+    if (ctx.theme) document.documentElement.dataset.theme = ctx.theme;
+  }
+  window.addEventListener("message", function (ev) {
+    var m = ev.data;
+    if (!m || m.jsonrpc !== "2.0") return;
+    if (m.method && Object.prototype.hasOwnProperty.call(m, "id") && (m.method === "ping" || m.method === "ui/resource-teardown")) {
+      send({jsonrpc: "2.0", id: m.id, result: {}});
+      return;
+    }
+    if (Object.prototype.hasOwnProperty.call(m, "id") && m.method == null && pending[m.id]) {
+      var waiter = pending[m.id];
+      delete pending[m.id];
+      if (m.error) waiter.reject(m.error);
+      else waiter.resolve(m.result);
+      return;
+    }
+    if (m.method === "ui/notifications/tool-result") {
+      if (!ready) queued = m.params || {};
+      else show(m.params || {});
+    } else if (m.method === "ui/notifications/host-context-changed") {
+      applyTheme(m.params || {});
+    } else if (m.method === "ui/notifications/tool-cancelled") {
+      cap.textContent = "这一掷取消了";
+    }
+  });
+  function handshake() {
+    var id = ++seq;
+    pending[id] = {
+      resolve: function (res) {
+        ready = true;
+        notify("ui/notifications/initialized");
+        applyTheme(res && res.hostContext);
+        reportSize();
+        if (queued) show(queued);
+      },
+      reject: function () { cap.textContent = "界面没有连上宿主"; }
+    };
+    send({
+      jsonrpc: "2.0",
+      id: id,
+      method: "ui/initialize",
+      params: {
+        protocolVersion: "2026-01-26",
+        appInfo: {name: "odin-gua", version: "0.4.0"},
+        appCapabilities: {availableDisplayModes: ["inline"]}
+      }
+    });
+  }
+
+  buildCoins();
+  window.__gua = {
+    rows: function () {
+      return [].map.call(rows.children, function (n) {
+        return {value: n.dataset.value, coins: [n.dataset.c0, n.dataset.c1, n.dataset.c2]};
+      });
+    },
+    caption: function () { return cap.textContent; }
+  };
+  if (window.parent === window) {
+    show({
+      structuredContent: {
+        method: "coins",
+        animate: true,
+        values: "967879",
+        coins: [[3, 3, 3], [2, 2, 2], [3, 2, 2], [3, 3, 2], [2, 3, 2], [3, 3, 3]]
+      }
+    });
+  } else {
+    handshake();
+  }
+  if (window.ResizeObserver) new ResizeObserver(function () { reportSize(); }).observe(document.body);
+})();
+  </script>
+</body>
+</html>
