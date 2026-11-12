@@ -18,6 +18,8 @@ curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh |
 
 也可以直接让 agent 来装：它会读 [AGENTS.md](AGENTS.md)（Claude Code 经 `CLAUDE.md` 引入）照做。装好后重启客户端，在对话里说“帮我起一卦，问下周的谈判”即可。
 
+**更新**：重跑同一条命令（会 `git pull` 后重装），然后新开会话。新版本第一次被调用时会在结果开头附更新要点，agent 读到就按新规则用，不必手动告诉它。详见 [AGENTS.md 的“更新”](AGENTS.md#更新)。
+
 手动编译：
 
 ```bash

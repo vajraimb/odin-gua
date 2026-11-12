@@ -52,6 +52,7 @@ Server :: struct {
 	legacy_version:              string, // 旧版握手后选定的版本
 	client_name:                 string,
 	persist:                     runtime.Allocator, // 跨请求保存的数据用它分配
+	after_call:                  proc(c: ^Call, tr: ^Tool_Result), // 每次工具调用之后（如附更新通告），可为 nil
 }
 
 ERR_PARSE :: -32700
@@ -158,6 +159,7 @@ handle :: proc(s: ^Server, line: string) -> (out: string, has_reply: bool) {
 			found = true
 			c := Call{args = args, client = s.client_name}
 			tr := t.handler(&c)
+			if s.after_call != nil { s.after_call(&c, &tr) }
 			result = obj(
 				{"content", arr({obj({"type", q("text")}, {"text", q(tr.text)})})},
 				{"structuredContent", tr.structured},

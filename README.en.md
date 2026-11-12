@@ -18,6 +18,8 @@ curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh |
 
 Or let your agent do it: point it at this repo and it will follow [AGENTS.md](AGENTS.md) (Claude Code picks it up through `CLAUDE.md`). Restart your client, then just say "cast a hexagram about next week's negotiation".
 
+**Updating**: rerun the same command (it runs `git pull` and reinstalls), then start a new session. The first call to a new version prefixes its result with what changed, so the agent picks up new rules without being told. See the "更新" section of [AGENTS.md](AGENTS.md).
+
 Manual build:
 
 ```bash

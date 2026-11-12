@@ -120,6 +120,21 @@ st = [e["status"] for e in call("journal", {"limit": 50}, {"TZ": "Asia/Shanghai"
 check(any(x.startswith("渎") for x in st) and any(x.startswith("已到复盘日") for x in st) and "待解读" in st, f"journal 状态: {st}")
 print(); print(call("journal", {}, {"TZ": "Asia/Shanghai"})["content"][0]["text"]); print()
 
+print("== 更新通告")
+home4 = tempfile.mkdtemp()
+with open(os.path.join(home4, "journal.jsonl"), "w") as f:
+    f.write(json.dumps({"kind": "cast", "id": "g20261101-000001", "ts": "2026-11-01T10:00:00+08:00", "question": "旧问题", "primary": 1, "server": "0.2.0"}) + "\n")
+u1 = call("lookup", {"query": "乾"}, {"GUA_HOME": home4})
+t1 = u1["content"][0]["text"]
+check(t1.startswith("【odin-gua 已更新 0.2.0 →") and "annotate" in t1 and "0.2.0：" not in t1, "从 0.2.0 升级：只通告之后各版")
+check(u1["structuredContent"]["update_notice"]["from"] == "0.2.0", "structuredContent 带 update_notice")
+u2 = call("lookup", {"query": "乾"}, {"GUA_HOME": home4})
+check("已更新" not in u2["content"][0]["text"] and "update_notice" not in u2["structuredContent"], "只通告一次（跨进程）")
+last = json.loads(open(os.path.join(home4, "journal.jsonl")).read().splitlines()[-1])
+check(last["kind"] == "upgrade" and last["from"] == "0.2.0", "日志记下 upgrade")
+check("已更新" not in call("lookup", {"query": "坤"}, {"GUA_HOME": tempfile.mkdtemp()})["content"][0]["text"], "全新安装不通告")
+print("  " + t1.split("\n\n")[0].replace("\n", "\n  "))
+
 print("== Streamable HTTP（--http）")
 import socket, time, urllib.request, urllib.error
 sk = socket.socket(); sk.bind(("127.0.0.1", 0)); port = sk.getsockname()[1]; sk.close()

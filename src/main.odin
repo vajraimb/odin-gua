@@ -15,7 +15,7 @@ import "gua"
 import "journal"
 import "mcp"
 
-VERSION :: "0.3.0"
+VERSION :: "0.3.1"
 
 obj :: mcp.obj
 q :: mcp.q
@@ -29,6 +29,7 @@ INSTRUCTIONS :: `易经起卦服务（I Ching casting）。
 - 解读以返回的 reading（朱熹取辞规则：该读哪条卦辞或爻辞）为主线；reading.focus 里已附原文 text_zh（通行本）与 text_en（Legge 1882 英译），请据原文引述，不要凭记忆改写经文。结合本卦、之卦、互卦与问题来讲；先给结论倾向，再给理由。
 - 讲完解读后立刻调用 annotate 记下：stance（倾向）、confidence（0–1）、prediction（一句将来能对照检验的具体判断）、review_after 或 review_in_days（何时复盘，按问题时间尺度定）。每卦只记一次，写下不改。
 - cast 与 journal 的结果里若有“复盘提醒”，在回答末尾顺便问用户那几件事结果如何。
+- 任何结果开头出现“【odin-gua 已更新 …】”时，按其中要点调整用法，并用一两句话告诉用户这次更新的变化。
 - 提醒用户：这是供自我反思的参考，不构成任何决策（包括投资）依据。
 - 查卦用 lookup，看互错综变用 relations，回看历史用 journal（due:true 只看到期待复盘的）。`
 
@@ -71,6 +72,7 @@ main :: proc() {
 		},
 	)
 	s.list_resources = list_resources
+	s.after_call = after_call
 	s.read_resource = read_resource
 	s.resource_templates = []mcp.Resource{{uri = "hexagram://{number}", name = "卦", description = "第 number 卦（1-64）的基本信息", mime = "application/json"}}
 

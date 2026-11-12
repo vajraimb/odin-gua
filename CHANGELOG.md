@@ -1,10 +1,19 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 — 2026-11-12
 
-- 第 3 步（0.3.0）：`annotate` 工具（倾向、把握、可检验预测、复盘日；每卦一次、写下不改）；复盘提醒（到期卦例附在 `cast` 结果与 `journal` 中，`journal due:true`）；防重摇（同问 72 小时内返回原卦，`recast`+`reason` 才重起并记为“渎”；`GUA_RECAST_HOURS`）。
+- 更新通告：版本变化后的第一次工具调用，结果开头附“【odin-gua 已更新 旧 → 新】”与各版要点（`structuredContent.update_notice`），日志追加 `kind: "upgrade"`，同机只通告一次；全新安装与降级不通告。
+- 编译期约束：`VERSION` 必须与 `src/notices.odin` 中最后一条通告一致。
+- `AGENTS.md` 新增“更新”一节：重装命令、验证、需重开会话、远程连接器重连、日志不可删改。
+
+## 0.3.0 — 2026-11-12
+
+- 第 3 步：`annotate` 工具（倾向、把握、可检验预测、复盘日；每卦一次、写下不改）；复盘提醒（到期卦例附在 `cast` 结果与 `journal` 中，`journal due:true`）；防重摇（同问 72 小时内返回原卦，`recast`+`reason` 才重起并记为“渎”；`GUA_RECAST_HOURS`）。
 - `--http [端口]`：Streamable HTTP 传输（只听 127.0.0.1，POST 回 JSON，GET 405）；令牌取 `GUA_HTTP_TOKEN`，放路径 `/mcp/<token>` 或 `Authorization: Bearer`。供 Perplexity 等只接远程 MCP 的客户端经隧道/反代使用。
-- 经文入库（0.2.0）：卦辞、爻辞、用九/用六共 450 条，中文通行本繁体 + Legge (1882) 英译；`cast`/`relations` 取辞附原文（`text_zh`/`text_en`），`lookup` 附卦辞，`hexagram://n` 含全部经文。
+
+## 0.2.0 — 2026-11-12
+
+- 经文入库：卦辞、爻辞、用九/用六共 450 条，中文通行本繁体 + Legge (1882) 英译；`cast`/`relations` 取辞附原文（`text_zh`/`text_en`），`lookup` 附卦辞，`hexagram://n` 含全部经文。
 - 编译期校验：`#load` 零拷贝嵌入，`#load_hash` 封印，约 1800 条 `#assert` 核对偏移、爻题与卦画；`tools/gen_texts.py` 生成。
 - 日志条目与 `--version` 带经文指纹 `texts`，复盘时可知当时所用版本。
 - 来源与校勘：`data/SOURCES.md`、`data/provenance.tsv`。

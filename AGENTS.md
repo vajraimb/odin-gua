@@ -77,12 +77,33 @@ odin build src -out:%USERPROFILE%\.gua\bin\odin-gua.exe -o:speed
 # 2. 用 --print-config 的输出加到客户端 MCP 配置
 ```
 
+## 更新
+
+用户说“更新 odin-gua”“升级易经 MCP”时，按下面做。
+
+1. 先看当前版本：`~/.gua/bin/odin-gua --version`（第一行是版本，第二行是经文指纹）。
+2. 拉新代码并重装：
+   - 用一行命令装的（源码在 `~/.gua/src`）：重跑 `curl -fsSL https://raw.githubusercontent.com/vajraimb/odin-gua/main/install.sh | bash`，脚本会 `git pull --ff-only` 再编译、自检、刷新注册。
+   - 从仓库目录装的：在仓库里 `git pull --ff-only && ./install.sh`。
+   - 带过 `--clients` / `--prefix` 的，重装时带同样的参数。
+3. 再跑 `~/.gua/bin/odin-gua --version` 与 `--self-test`，确认版本变了且“自检通过”。
+4. 告诉用户：**正在进行的会话仍在用旧进程**，需要重启客户端或新开会话才会加载新版本。Perplexity 等远程连接器：在连接器设置里断开再连接一次。
+
+更新后不需要手动告诉模型改了什么：新版本第一次被调用时，结果开头会附“【odin-gua 已更新 旧版 → 新版】”及各版要点，`structuredContent.update_notice` 里也有。看到它请照做，并简短告诉用户这次更新带来的变化。通告只出现一次（日志里会追加一条 `kind: "upgrade"`）。
+
+注意：
+
+- 卦例日志 `~/.gua/journal.jsonl` 跨版本兼容，只追加。更新、重装、卸载都不要删改它。
+- `git pull` 失败（本地有改动或分叉）时停下，把输出给用户看，不要 `reset --hard`。
+- 降级不会触发通告。
+
 ## 使用规则（给调用工具的 agent）
 
 - 用户想起卦、占卜、问卦时调用 `cast`，把用户关心的事提炼成一句 `question`；不要让用户自己抛硬币。
 - 卦象只能来自 `cast` 的返回。绝不自行编造。同一问题服务器 72 小时内不重摇、会返回原卦；不要改写问题绕开。只有用户明确说情况变了，才带 `recast:true` 与 `reason`。
 - 解读完立刻调用 `annotate`：`stance`、`confidence`（0–1）、`prediction`（将来能对照检验的一句话）、`review_after`/`review_in_days`（按问题的时间尺度）。每卦只能记一次。
 - `cast`/`journal` 结果里出现“复盘提醒”时，在回答末尾顺便问用户那几件事的结果。
+- 任何结果开头出现“【odin-gua 已更新 …】”时，按其中的要点调整用法，并用一两句话告诉用户。
 - 解读以返回的 `reading`（朱熹取辞规则：读哪条卦辞或爻辞）为主线，结合本卦、之卦、互卦与问题；先给倾向，再给理由。
 - `reading.focus[].text_zh` / `text_en` 是原文（通行本 / Legge 1882），引用时照录，不要凭记忆改写经文。
 - 提醒用户：仅供自我反思，不构成任何决策（包括投资）依据。
@@ -92,6 +113,7 @@ odin build src -out:%USERPROFILE%\.gua\bin\odin-gua.exe -o:speed
 
 - 工具链固定 Odin `dev-2026-07`；Linux 需 clang。
 - `./build.sh` 编译到 `bin/odin-gua`；`./build.sh test` 跑单元测试（`src/gua`）和 `tests/smoke.py`（stdio 冒烟，新旧两代协议）。
+- 改 `VERSION` 时必须在 `src/notices.odin` 的 `NOTES` 末尾补一条给 agent 看的更新要点，否则编译期 `#assert` 失败。
 - 改了 `data/zhouyi.txt` 或 `data/legge.txt` 后必须运行 `python3 tools/gen_texts.py`，否则编译期 `#load_hash` 断言失败；这是预期行为，不要删断言。
 - 编译选项必须过 `-vet -strict-style`。
 - 每个请求用 `context.temp_allocator`，请求结束释放；跨请求状态放 `Server.persist`。
