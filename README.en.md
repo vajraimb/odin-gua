@@ -32,7 +32,7 @@ Command-line flags:
 | Flag | Effect |
 |---|---|
 | (none) | Run as a stdio MCP server |
-| `--self-test` | 8 in-process protocol and tool checks (uses a temp dir, never touches your journal) |
+| `--self-test` | 9 in-process protocol and tool checks (uses a temp dir, never touches your journal) |
 | `--print-config` | Print the `mcpServers` snippet for this binary |
 | `--version` / `--help` | Version / usage |
 
@@ -90,7 +90,7 @@ The journal is written on the machine that runs the server.
 
 | Tool | Status | Purpose |
 |---|---|---|
-| `cast` | ✅ 0.1 | Cast (three-coin or yarrow-stalk probabilities); `question` is required. Returns primary, moving lines, changed and nuclear hexagrams, which texts to read, and journals the cast |
+| `cast` | ✅ 0.4 | Cast (three-coin or yarrow-stalk probabilities); `question` is required. Returns primary, moving lines, changed and nuclear hexagrams, which texts to read, and journals the cast. The three-coin method also records each coin; hosts that support MCP Apps replay that toss beside the tool call |
 | `lookup` | ✅ 0.1 | Find a hexagram by number, Chinese name, pinyin, English name, Unicode symbol or 6-bit string |
 | `relations` | ✅ 0.1 | Nuclear, complement and inverse; with moving lines, also the changed hexagram and reading |
 | `journal` | ✅ 0.1 | Recent casts |
@@ -98,7 +98,7 @@ The journal is written on the machine that runs the server.
 | `review` | planned | Record what actually happened |
 | `report` | planned | Hit rate, Brier calibration, placebo comparison, judge commentary |
 
-Resources: `hexagram://1` … `hexagram://64` (template `hexagram://{number}`).
+Resources: `hexagram://1` … `hexagram://64` (template `hexagram://{number}`). `ui://odin-gua/coins` is the coin replay (MCP Apps). It plays back the recorded faces and does not roll again; the yarrow method shows the six lines only. Hosts without that extension still get the text result.
 
 ## Rules
 

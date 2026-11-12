@@ -15,7 +15,10 @@ import "gua"
 import "journal"
 import "mcp"
 
-VERSION :: "0.3.1"
+VERSION :: "0.4.0"
+
+COINS_UI :: "ui://odin-gua/coins"
+COINS_HTML :: #load("coins.html")
 
 obj :: mcp.obj
 q :: mcp.q
@@ -31,7 +34,8 @@ INSTRUCTIONS :: `易经起卦服务（I Ching casting）。
 - cast 与 journal 的结果里若有“复盘提醒”，在回答末尾顺便问用户那几件事结果如何。
 - 任何结果开头出现“【odin-gua 已更新 …】”时，按其中要点调整用法，并用一两句话告诉用户这次更新的变化。
 - 提醒用户：这是供自我反思的参考，不构成任何决策（包括投资）依据。
-- 查卦用 lookup，看互错综变用 relations，回看历史用 journal（due:true 只看到期待复盘的）。`
+- 查卦用 lookup，看互错综变用 relations，回看历史用 journal（due:true 只看到期待复盘的）。
+- 三钱法的 cast 带 coins：每爻三枚，2 为阴（字）、3 为阳（背），自初爻到上爻。支持 MCP Apps 的客户端会在工具卡片里播放这次的 3D 回放。钱面以 coins 为准，不要另编，也不要在解卦正文里插入动图。大衍法没有硬币。同一问题返回原卦时是初筮的钱面，不是新的一掷。`
 
 main :: proc() {
 	if ok, msg := gua.self_check(); !ok {
@@ -42,8 +46,9 @@ main :: proc() {
 	append(&s.tools,
 		mcp.Tool{
 			name = "cast", title = "起卦",
-			description = "起一卦（默认三钱法），返回本卦、动爻、之卦、互卦与按朱熹规则应读的卦辞/爻辞位置，并自动记入卦例日志。必须提供 question。Cast an I Ching hexagram for a question; the result is random, reproducible by seed, and journaled.",
+			description = "起一卦（默认三钱法），返回本卦、动爻、之卦、互卦与按朱熹规则应读的卦辞/爻辞位置，并自动记入卦例日志。必须提供 question。三钱法会记下每一枚钱的正反，支持 MCP Apps 的客户端在工具卡片回放这一掷。Cast an I Ching hexagram for a question; the result is random, reproducible by seed, and journaled.",
 			input_schema = `{"type":"object","properties":{"question":{"type":"string","description":"用户所问之事，一句话"},"method":{"type":"string","enum":["coins","yarrow"],"default":"coins","description":"coins 三钱法；yarrow 大衍筮法概率"},"recast":{"type":"boolean","default":false,"description":"同一问题窗口期内确需重起时才设 true（新卦记为渎）"},"reason":{"type":"string","description":"recast 时必填：情况有何变化"}},"required":["question"]}`,
+			ui = COINS_UI,
 			handler = tool_cast,
 		},
 		mcp.Tool{
@@ -253,9 +258,23 @@ tool_cast :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 	prev, dup := find_recent_same(cases[:], question)
 	if dup && !recast {
 		pid := journal.str(prev.entry, "id")
-		text := fmt.tprintf("此问已于 %s 起过卦：%s %s\n原问：%s\n\n初筮告，再三渎：不重摇，请沿用原卦解读（journal 可查看）。若情况确已改变，可带 recast:true 与 reason 重起，新卦记为“渎”、不计入统计。",
+		digits := journal.str(prev.entry, "coins")
+		b := strings.builder_make(context.temp_allocator)
+		fmt.sbprintf(&b, "此问已于 %s 起过卦：%s %s\n原问：%s\n\n初筮告，再三渎：不重摇，请沿用原卦解读（journal 可查看）。若情况确已改变，可带 recast:true 与 reason 重起，新卦记为“渎”、不计入统计。",
 			journal.str(prev.entry, "ts"), pid, case_title(prev.entry), journal.str(prev.entry, "question"))
-		return {text = text, structured = obj({"duplicate_of", q(pid)}, {"journaled", "false"}, {"cast", "false"})}
+		write_coins_line(&b, digits)
+		return {
+			text = strings.to_string(b),
+			structured = obj(
+				{"duplicate_of", q(pid)},
+				{"journaled", "false"},
+				{"cast", "false"},
+				{"animate", "false"},
+				{"method", q(journal.str(prev.entry, "method"))},
+				{"values", q(journal.str(prev.entry, "values"))},
+				{"coins", coins_json(digits)},
+			),
+		}
 	}
 	if dup && reason == "" { return fail("recast 需要 reason：说明情况有何变化") }
 	du := dup && recast
@@ -265,6 +284,7 @@ tool_cast :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 		if v, ok := strconv.parse_u64(s); ok { seed = v }
 	}
 	cs := gua.cast_with_seed(seed, method)
+	digits := gua.coins_string(cs)
 	g, m := gua.primary(cs), gua.moving(cs)
 	z := gua.bian(g, m)
 	ts := journal.now_string()
@@ -279,6 +299,7 @@ tool_cast :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 		{"method", q(gua.METHOD_NAME[method])},
 		{"seed", q(seed_hex)},
 		{"values", q(gua.values_string(cs))},
+		{"coins", q(digits) if digits != "" else ""},
 		{"primary", num(gua.number(g))},
 		{"changed", num(gua.number(z)) if m != {} else "null"},
 		{"moving", positions(m)},
@@ -296,6 +317,7 @@ tool_cast :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 	method_zh := "三钱法" if method == .Coins else "大衍筮法"
 	fmt.sbprintf(&b, "起卦 %s · %s · %s\n问：%s\n\n", id, method_zh, ts, question)
 	fmt.sbprintf(&b, "本卦 %s\n%s\n", gua.title(g), gua.draw(g, cs.values[:]))
+	write_coins_line(&b, digits)
 	if m != {} {
 		fmt.sbprintf(&b, "动爻：%s\n之卦 %s\n", moving_names(g, m), gua.title(z))
 	} else {
@@ -318,6 +340,8 @@ tool_cast :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 		{"method", q(gua.METHOD_NAME[method])},
 		{"seed", q(seed_hex)},
 		{"values", q(gua.values_string(cs))},
+		{"coins", coins_json(digits)},
+		{"animate", "true" if digits != "" else "false"},
 		{"primary", hex_json(g)},
 		{"moving", positions(m)},
 		{"changed", hex_json(z) if m != {} else "null"},
@@ -417,18 +441,26 @@ tool_journal :: proc(c: ^mcp.Call) -> mcp.Tool_Result {
 // ---------- 资源 ----------
 
 list_resources :: proc() -> []mcp.Resource {
-	out := make([]mcp.Resource, 64, context.temp_allocator)
+	out := make([dynamic]mcp.Resource, context.temp_allocator)
 	for n in 1 ..= 64 {
-		out[n - 1] = {
+		append(&out, mcp.Resource{
 			uri  = fmt.tprintf("hexagram://%d", n),
 			name = fmt.tprintf("%s %d %s %s", gua.symbol(n), n, gua.NAME_ZH[n], gua.NAME_EN[n]),
 			mime = "application/json",
-		}
+		})
 	}
-	return out
+	append(&out, mcp.Resource{
+		uri = COINS_UI, name = "三钱回放",
+		description = "cast 的掷钱 3D 回放（MCP App）。画面只重现服务器算好的钱面。",
+		mime = "text/html;profile=mcp-app",
+	})
+	return out[:]
 }
 
-read_resource :: proc(uri: string) -> (text: string, mime: string, ok: bool) {
+read_resource :: proc(uri: string) -> (text: string, mime: string, meta: string, ok: bool) {
+	if uri == COINS_UI {
+		return string(COINS_HTML), "text/html;profile=mcp-app", obj({"ui", obj({"prefersBorder", "true"})}), true
+	}
 	if !strings.has_prefix(uri, "hexagram://") { return }
 	n, isnum := strconv.parse_int(uri[len("hexagram://"):], 10)
 	if !isnum || n < 1 || n > 64 { return }
@@ -447,7 +479,33 @@ read_resource :: proc(uri: string) -> (text: string, mime: string, ok: bool) {
 		yong = obj({"name", q("用九" if n == 1 else "用六")}, {"text_zh", q(yz)}, {"text_en", q(gua.yong_text(n, .En))})
 	}
 	full := obj({"lines", arr(lines[:])}, {"yong", yong}, {"texts", q(gua.texts_id())})
-	return mcp_merge(hex_json(g), full), "application/json", true
+	return mcp_merge(hex_json(g), full), "application/json", "", true
+}
+
+// "232332…" → [[2,3,2],…]；不是 18 位的 2/3 则返回 ""（大衍法、旧日志）。
+coins_json :: proc(digits: string) -> string {
+	if len(digits) != 18 { return "" }
+	rows := make([dynamic]string, context.temp_allocator)
+	for i in 0 ..< 6 {
+		cell: [3]string
+		for k in 0 ..< 3 {
+			d := digits[i * 3 + k]
+			if d != '2' && d != '3' { return "" }
+			cell[k] = num(int(d - '0'))
+		}
+		append(&rows, arr(cell[:]))
+	}
+	return arr(rows[:])
+}
+
+write_coins_line :: proc(b: ^strings.Builder, digits: string) {
+	if len(digits) != 18 { return }
+	strings.write_string(b, "钱面（初爻→上爻，2阴 3阳）：")
+	for i in 0 ..< 6 {
+		if i > 0 { strings.write_byte(b, ' ') }
+		strings.write_string(b, digits[i * 3:][:3])
+	}
+	strings.write_byte(b, '\n')
 }
 
 // 合并两个 JSON 对象字面量

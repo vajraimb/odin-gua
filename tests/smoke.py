@@ -33,16 +33,24 @@ out = session([
     {"jsonrpc": "2.0", "id": 8, "method": "nope"},
     {"jsonrpc": "2.0", "id": 9, "method": "resources/read", "params": {"uri": "hexagram://11"}},
     {"jsonrpc": "2.0", "id": 10, "method": "tools/call", "params": {"name": "journal", "arguments": {}}},
+    {"jsonrpc": "2.0", "id": 11, "method": "resources/read", "params": {"uri": "ui://odin-gua/coins"}},
 ], {"GUA_SEED": "42"})
 by = {m["id"]: m for m in out}
-check(len(out) == 10, f"10 条回复（通知不回）: {len(out)}")
+check(len(out) == 11, f"11 条回复（通知不回）: {len(out)}")
 check(by[1]["result"]["protocolVersion"] == "2025-11-25", "initialize 协商版本")
 check("instructions" in by[1]["result"], "initialize 带 instructions")
 check("resultType" not in by[1]["result"], "旧版结果不带 resultType")
 check([t["name"] for t in by[2]["result"]["tools"]] == ["cast", "lookup", "relations", "journal", "annotate"], "五个工具")
+cast_tool = next(t for t in by[2]["result"]["tools"] if t["name"] == "cast")
+check(cast_tool.get("_meta", {}).get("ui", {}).get("resourceUri") == "ui://odin-gua/coins", "cast 声明掷钱界面")
 c = by[3]["result"]; sc = c["structuredContent"]
 check(not c["isError"] and sc["journaled"], "cast 成功并记入日志")
 check(sc["question"] == "下周的谈判" and len(sc["values"]) == 6, "cast 结构化字段")
+coins = sc["coins"]
+check(sc["animate"] is True and len(coins) == 6 and all(
+    sum(row) == int(sc["values"][i]) and set(row) <= {2, 3} for i, row in enumerate(coins)
+), "三钱法记下每枚钱，且与爻值相符")
+check("钱面（初爻→上爻" in c["content"][0]["text"], "文本列出钱面")
 print("\n" + c["content"][0]["text"] + "\n")
 check(all(f["text_zh"] and f["text_en"] for f in sc["reading"]["focus"]), "cast 取辞附中英原文")
 check(sc["reading"]["focus"][0]["text_zh"] in c["content"][0]["text"], "cast 文本里引出原文")
@@ -57,6 +65,9 @@ check(by[8]["error"]["code"] == -32601, "未知方法 -32601")
 tai = json.loads(by[9]["result"]["contents"][0]["text"])
 check(tai["name_zh"] == "泰" and tai["judgment_zh"] == "小往大來，吉亨。" and len(tai["lines"]) == 6 and "yong" not in tai, "resources/read 泰 带卦辞爻辞")
 check(len(by[10]["result"]["structuredContent"]["entries"]) == 1, "journal 读到 1 条")
+ui = by[11]["result"]["contents"][0]
+check(ui["mimeType"] == "text/html;profile=mcp-app" and "ui/initialize" in ui["text"], "掷钱界面是 MCP App")
+check(ui.get("_meta", {}).get("ui", {}).get("prefersBorder") is True, "界面声明 prefersBorder")
 
 print("== 新版协议 2026-07-28")
 meta = {"io.modelcontextprotocol/protocolVersion": "2026-07-28",
@@ -74,6 +85,8 @@ check(d["resultType"] == "complete" and "2026-07-28" in d["supportedVersions"], 
 check(d["_meta"]["io.modelcontextprotocol/serverInfo"]["name"] == "odin-gua", "结果 _meta 带 serverInfo")
 check(by["l"]["result"]["ttlMs"] > 0 and by["l"]["result"]["cacheScope"] == "public", "tools/list 带缓存字段")
 check(by["c"]["result"]["resultType"] == "complete" and "ttlMs" not in by["c"]["result"], "tools/call 不带缓存字段")
+yc = by["c"]["result"]["structuredContent"]
+check(yc["method"] == "yarrow" and "coins" not in yc and yc["animate"] is False, "大衍法不抛钱")
 check(by["x"]["error"]["code"] == -32022 and "2026-07-28" in by["x"]["error"]["data"]["supported"], "不支持的版本 -32022")
 ents = by["j"]["result"]["structuredContent"]["entries"]
 check(len(ents) == 2 and ents[0]["client"] == "smoke-modern" and ents[1]["client"] == "smoke-legacy", "两个客户端共用日志，新的在前")
@@ -97,6 +110,7 @@ check("annotate(id=" + aid in a["content"][0]["text"], "cast 提示调用 annota
 d = call("cast", {"question": "要不要接 这个项目"})
 check(d["structuredContent"].get("duplicate_of") == aid and not d["isError"], "相似问题不重摇，返回原卦")
 check("再三渎" in d["content"][0]["text"], "说明不再三")
+check(d["structuredContent"].get("animate") is False and d["structuredContent"].get("coins") == a["structuredContent"]["coins"], "不再三回放初筮钱面")
 check(call("cast", {"question": "要不要接这个项目", "recast": True})["isError"], "recast 无 reason 报错")
 r = call("cast", {"question": "要不要接这个项目", "recast": True, "reason": "对方改了报价"})
 check(r["structuredContent"].get("du") is True, "recast+reason：新卦记为渎")
